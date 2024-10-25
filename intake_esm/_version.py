@@ -1,1 +1,1 @@
-__version__ = '2024.2.7_access_nri'
+__version__ = '2024.10.26'
