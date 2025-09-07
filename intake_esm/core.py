@@ -882,13 +882,18 @@ class esm_datastore(Catalog):
         :py:class:`~xarray.Dataset`
         """
         if len(self) != 1:  # quick check to fail more quickly if there are many results
+            lens = {
+                k: len(getattr(self.unique(), k))
+                for k in self.esmcat.aggregation_control.groupby_attrs
+            }
+            lens = {k: v for k, v in lens.items() if v > 1}
             raise ValueError(
-                f'Expected exactly one dataset. Received {len(self)} datasets. Please refine your search or use `.to_dataset_dict()`.'
+                f'Expected exactly one dataset. Received {len(self)} datasets. Please refine your search on {", ".join(lens.keys())} or use `.to_dataset_dict()`.'
             )
         res = self.to_dataset_dict(**{**kwargs, 'progressbar': False})
         if len(res) != 1:  # extra check in case kwargs did modify something
             raise ValueError(
-                f'Expected exactly one dataset. Received {len(self)} datasets. Please refine your search or use `.to_dataset_dict()`.'
+                f'Expected exactly one dataset. Received {len(self)} datasets. Please refine your search on {" ,".join(lens.keys())}or use `.to_dataset_dict()`.'
             )
         _, ds = res.popitem()
         return ds
