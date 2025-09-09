@@ -573,7 +573,7 @@ class esm_datastore(Catalog):
             )
             if write_kwargs is not None:
                 raise ValueError(
-                    'Cannot provide both `read_csv_kwargs` and `write_kwargs`. '
+                    'Cannot provide both `to_csv_kwargs` and `write_kwargs`. '
                     'Please use `write_kwargs`.'
                 )
             write_kwargs = to_csv_kwargs
