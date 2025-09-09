@@ -664,7 +664,7 @@ class CatalogFileDataReader:
                 .str.replace(',]$', ']')  # Remove trailing commas
                 .str.replace_all(
                     "'", '"'
-                )  # This is to do with the JSON spec- single versus double quotes
+                )  # This is to do with the JSON spec - single versus double quotes
                 .str.json_decode(dtype=pl.List(pl.Utf8))
                 for colname in converters.keys()
             ]
