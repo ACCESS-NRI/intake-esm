@@ -919,7 +919,7 @@ class esm_datastore(Catalog):
         res = self.to_dataset_dict(**{**kwargs, 'progressbar': False})
         if len(res) != 1:  # extra check in case kwargs did modify something
             raise ValueError(
-                f'Expected exactly one dataset. Received {len(self)} datasets. Please refine your search on {" ,".join(lens.keys())}or use `.to_dataset_dict()`.'
+                f'Expected exactly one dataset. Received {len(self)} datasets. Please refine your search on {", ".join(lens.keys())} or use `.to_dataset_dict()`.'
             )
         _, ds = res.popitem()
         return ds
