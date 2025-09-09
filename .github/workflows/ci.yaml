@@ -51,14 +51,11 @@ jobs:
         run: |
           python -m pytest
 
-      - name: Upload code coverage to Codecov
-        uses: codecov/codecov-action@v5.4.3
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
         with:
-          file: ./coverage.xml
-          flags: unittests
-          env_vars: OS,PYTHON
-          name: codecov-umbrella
-          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: ACCESS-NRI/intake-esm
 
   upstream-dev:
     name: upstream-dev
