@@ -916,7 +916,7 @@ class esm_datastore(Catalog):
         if len(res) != 1:  # extra check in case kwargs did modify something
             lens = self._aggr_lengths
             raise ValueError(
-                f'Expected exactly one dataset. Received {len(self)} datasets. Please refine your search on {" ,".join(lens.keys())} or use `.to_dataset_dict()`.'
+                f'Expected exactly one dataset. Received {len(self)} datasets. Please refine your search on {", ".join(lens.keys())} or use `.to_dataset_dict()`.'
             )
         _, ds = res.popitem()
         return ds
