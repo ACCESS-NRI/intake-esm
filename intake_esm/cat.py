@@ -197,7 +197,7 @@ class ESMCatalogModel(pydantic.BaseModel):
         if to_csv_kwargs is not None:
             warnings.warn(
                 'to_csv_kwargs is deprecated and will be removed in a future version. '
-                'Please use read_kwargs instead.',
+                'Please use write_kwargs instead.',
                 DeprecationWarning,
                 stacklevel=2,
             )
