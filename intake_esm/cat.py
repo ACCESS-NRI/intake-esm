@@ -546,14 +546,14 @@ class FramesModel(pydantic.BaseModel):
             return self.df
 
         if self.pl_df is not None:
-            self.df = self.pl_df.to_pandas(use_pyarrow_extension_array=True)
+            self.df = self.pl_df.to_pandas(use_pyarrow_extension_array=False)
             self.df[list(self.columns_with_iterables)] = self.df[
                 list(self.columns_with_iterables)
             ].map(tuple)
             return self.df
 
         self.pl_df = self.lf.collect()  # type: ignore[union-attr]
-        self.df = self.pl_df.to_pandas(use_pyarrow_extension_array=True)
+        self.df = self.pl_df.to_pandas(use_pyarrow_extension_array=False)
         for colname in self.columns_with_iterables:
             self.df[colname] = self.df[colname].apply(tuple)
         return self.df
