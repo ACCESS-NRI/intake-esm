@@ -93,7 +93,7 @@ $ make docs
 
    ```bash
    $ conda env update -f ci/environment.yml
-   $ conda activate intake-esm-dev
+   $ conda activate intake-esm-access
    ```
 
 4. Make an editable install of intake-esm by running::
@@ -112,7 +112,7 @@ $ make docs
 
    `pre-commit` is a framework for managing and maintaining multi-language pre-commit hooks to ensure code-style and code formatting is consistent.
 
-   Now you have an environment called `intake-esm-dev` that you can work in.
+   Now you have an environment called `intake-esm-access` that you can work in.
    You’ll need to make sure to activate that environment next time you want
    to use it after closing the terminal or your system.
 
