@@ -135,3 +135,10 @@ tag_prefix = "v"
 parentdir_prefix = "intake-esm-"
 
 
+[tool.coverage.run]
+    omit = [
+        "tests/*",
+        "docs/*",
+        "*/_version.py",
+        "versioneer.py",
+    ]
