@@ -103,6 +103,9 @@ jobs:
           auto-update-conda: false
           auto-activate-base: false
           show-channel-urls: true
+
+      - name: Install conda-build
+        run: conda install -y -c conda-forge conda-build
           
       - name: Enforce .tar.bz2 packages
         # Temporary work-arounds while the action uibcdf/action-build-and-upload-conda-packages gets updated:
