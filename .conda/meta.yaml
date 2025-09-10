@@ -4,7 +4,7 @@
 {% set deps = pyproj.get('project', {}).get('dependencies',[]) %}
 
 package:
-  name: access-nri-intake
+  name: intake-esm-access
   version: "{{ version }}"
 
 source:
