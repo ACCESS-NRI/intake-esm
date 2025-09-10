@@ -99,7 +99,7 @@ jobs:
         with:
           miniconda-version: "latest"
           python-version: 3.11
-          environment-file: .conda/environment.yml
+          environment-file: ci/environment.yml
           auto-update-conda: false
           auto-activate-base: false
           show-channel-urls: true
