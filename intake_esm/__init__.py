@@ -5,10 +5,11 @@
 # Import intake first to avoid circular imports during discovery.
 import intake
 
-
 from intake_esm import tutorial
 from intake_esm.core import esm_datastore
 from intake_esm.derived import DerivedVariableRegistry, default_registry
 from intake_esm.utils import set_options, show_versions
 
-from intake_esm._version import __version__
+from . import _version
+
+__version__ = _version.get_versions()['version']
