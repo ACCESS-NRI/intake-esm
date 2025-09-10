@@ -1,5 +1,5 @@
 [build-system]
-    requires = ["setuptools>=75.0", "setuptools_scm>=8.1", "wheel"]
+    requires = ["setuptools>=75.0", "setuptools_scm>=8.1", "wheel","versioneer"]
 
 [project]
     classifiers = [
@@ -125,3 +125,13 @@
     addopts              = "--cov=./ --cov-report=xml --verbose"
     console_output_style = "count"
     markers              = "network: tests requiring a network connection"
+
+[tool.versioneer]
+VCS = "git"
+style = "pep440"
+versionfile_source = "intake_esm/_version.py"
+versionfile_build = "intake_esm/_version.py"
+tag_prefix = "v"
+parentdir_prefix = "intake-esm-"
+
+
