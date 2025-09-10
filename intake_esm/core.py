@@ -305,7 +305,6 @@ class esm_datastore(Catalog):
         >>> data_source = cat['AerChemMIP.BCC.BCC-ESM1.piClim-control.AERmon.gn']
         """
         # The canonical unique key is the key of a compatible group of assets
-        x = 0
         try:
             return self._entries[key]
         except KeyError as e:

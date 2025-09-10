@@ -8,7 +8,7 @@ package:
   version: "{{ version }}"
 
 source:
-  url: "https://pypi.io/packages/source/a/access-nri-intake/intake-esm-access-{{ version }}.tar.gz"
+  url: "https://pypi.io/packages/source/i/intake-esm-access/intake-esm-access-{{ version }}.tar.gz"
 
 build:
   noarch: python
