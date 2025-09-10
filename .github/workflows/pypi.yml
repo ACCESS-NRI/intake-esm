@@ -9,7 +9,7 @@ on:
 jobs:
   build-artifacts:
     runs-on: ubuntu-latest
-    if: github.repository == 'intake/intake-esm'
+    if: github.repository == 'access-nri/intake-esm'
     steps:
       - uses: actions/checkout@v4
         with:
@@ -82,3 +82,49 @@ jobs:
           path: dist
       - name: Publish package to PyPI
         uses: pypa/gh-action-pypi-publish@v1.13.0
+
+
+  conda:
+    name: build and deploy to conda
+    needs: upload-to-pypi
+    if: always() && needs.upload-to-pypi.result == 'success'
+    runs-on: "ubuntu-latest"
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4.2.2
+
+      - name: Setup conda environment
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          miniconda-version: "latest"
+          python-version: 3.11
+          environment-file: ci/environment.yml
+          auto-update-conda: false
+          auto-activate-base: false
+          show-channel-urls: true
+          
+      - name: Enforce .tar.bz2 packages
+        # Temporary work-arounds while the action uibcdf/action-build-and-upload-conda-packages gets updated:
+        # We create a `~/.condarc` file with the correct options to enforce the use of `.tar.bz2` packages
+        # and we set the channels to be used by conda build
+        shell: bash
+        run: |
+            cat > ~/.condarc << EOF
+            conda-build:
+                pkg_format: .tar.bz2
+            channels:
+                - accessnri
+                - conda-forge
+                - nodefaults
+            EOF
+
+      - name: Build and upload the conda package
+        uses: uibcdf/action-build-and-upload-conda-packages@v1.4.0
+        with:
+          meta_yaml_dir: .conda
+          python-version: 3.11
+          user: accessnri
+          label: main
+          token: ${{ secrets.anaconda_token }}
+

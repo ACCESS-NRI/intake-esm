@@ -1,0 +1,39 @@
+{% set data = load_setup_py_data(setup_file='../setup.py', from_recipe_dir=True) %}
+{% set version = data.get('version') %}
+{% set pyproj = load_file_data('../pyproject.toml', from_recipe_dir=True) %}
+{% set deps = pyproj.get('project', {}).get('dependencies',[]) %}
+
+package:
+  name: access-nri-intake
+  version: "{{ version }}"
+
+source:
+  url: "https://pypi.io/packages/source/i/intake-esm-access/intake-esm-access-{{ version }}.tar.gz"
+
+build:
+  noarch: python
+  number: 0
+  script: "{{ PYTHON }} -m pip install . -vv"
+
+requirements:
+  host:
+    - python
+    - pip
+    - versioneer
+    - setuptools >=61.0.0
+  run:
+    - python >=3.10
+    {% for dep in deps %}
+    - {{ dep }}
+    {% endfor %}
+
+about:
+  home: https://github.com/ACCESS-NRI/intake-esm
+  license: Apache Software
+  license_family: APACHE
+  summary: "An intake plugin for parsing an Earth System Model (ESM) catalog and loading netCDF files and/or Zarr stores into Xarray datasets."
+  doc_url: https://intake-esm.readthedocs.io
+
+extra:
+  recipe-maintainers:
+    - Charles_Turner

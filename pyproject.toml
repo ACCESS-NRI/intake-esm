@@ -15,11 +15,11 @@
         "Programming Language :: Python",
         "Topic :: Scientific/Engineering",
     ]
-    description = "An intake plugin for parsing an Earth System Model (ESM) catalog and loading netCDF files and/or Zarr stores into Xarray datasets."
+    description = "An intake plugin for parsing an Earth System Model (ESM) catalog and loading netCDF files and/or Zarr stores into Xarray datasets. This is the ACCESS-NRI bleeding edge fork."
     keywords = ["catalog", "intake", "xarray"]
     license = { text = "Apache Software License 2.0" }
-    maintainers = [{ name = "NCAR XDev Team", email = "xdev@ucar.edu" }]
-    name = "intake-esm"
+    maintainers = [{ name = "ACCESS-NRI", email = "charles.turner@anu.edu.au" }]
+    name = "intake-esm-access"
     readme = "README.md"
     requires-python = ">=3.10"
 
@@ -37,8 +37,8 @@
 [project.urls]
     Documentation = "https://intake-esm.readthedocs.io"
     Homepage      = "https://intake-esm.readthedocs.io"
-    Source        = "https://github.com/intake/intake-esm"
-    Tracker       = "https://github.com/intake/intake-esm/issues"
+    Source        = "https://github.com/access-nri/intake-esm"
+    Tracker       = "https://github.com/access-nri/intake-esm/issues"
 
 [tool.setuptools.packages.find]
     include = ["intake_esm*"]
