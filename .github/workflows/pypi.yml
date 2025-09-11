@@ -70,7 +70,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install dist/intake_esm*.whl
-          echo "intake-esm-version=$(python -c "import intake_esm; print(intake_esm.__version__)") >> $GITHUB_OUTPUT
+          echo "intake-esm-version=$(python -c "import intake_esm; print(intake_esm.__version__)")" >> $GITHUB_OUTPUT
 
   upload-to-pypi:
     needs: test-built-dist
