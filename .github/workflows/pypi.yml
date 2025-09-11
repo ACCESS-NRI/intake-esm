@@ -48,6 +48,8 @@ jobs:
   test-built-dist:
     needs: build-artifacts
     runs-on: ubuntu-latest
+    outputs:
+      intake-esm-version: ${{ steps.verify.outputs.intake-esm-version }}
     steps:
       - uses: actions/setup-python@v5
         name: Install Python
@@ -64,10 +66,11 @@ jobs:
 
       - name: Verify the built dist/wheel is valid
         if: github.event_name == 'push'
+        id: verify
         run: |
           python -m pip install --upgrade pip
           python -m pip install dist/intake_esm*.whl
-          python -c "import intake_esm; print(intake_esm.__version__)"
+          echo "intake-esm-version=$(python -c "import intake_esm; print(intake_esm.__version__)")" >> $GITHUB_OUTPUT
 
   upload-to-pypi:
     needs: test-built-dist
@@ -83,10 +86,15 @@ jobs:
       - name: Publish package to PyPI
         uses: pypa/gh-action-pypi-publish@v1.13.0
 
+      # Just as an example, you'd use the value like this:
+      - run: echo "version - ${{ needs.test-built-dist.outputs.intake-esm-version }}"
+
 
   conda:
     name: build and deploy to conda
-    needs: upload-to-pypi
+    needs: 
+      - upload-to-pypi
+      - test-built-dist
     if: always() && needs.upload-to-pypi.result == 'success'
     runs-on: "ubuntu-latest"
 
@@ -130,4 +138,6 @@ jobs:
           user: accessnri
           label: main
           token: ${{ secrets.anaconda_token }}
+        env:
+          INTAKE_ESM_VERSION: ${{ needs.test-built-dist.outputs.intake-esm-version }}
 
