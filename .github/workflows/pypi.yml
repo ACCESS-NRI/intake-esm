@@ -92,7 +92,9 @@ jobs:
 
   conda:
     name: build and deploy to conda
-    needs: upload-to-pypi
+    needs: 
+      - upload-to-pypi
+      - test-built-dist
     if: always() && needs.upload-to-pypi.result == 'success'
     runs-on: "ubuntu-latest"
 
