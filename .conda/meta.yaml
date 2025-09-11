@@ -1,5 +1,5 @@
 {% set data = load_setup_py_data(setup_file='../setup.py', from_recipe_dir=True) %}
-{% set version = data.get('version') %}
+{% set version = environ.get('INTAKE_ESM_VERSION', data.get('version')) %}
 {% set pyproj = load_file_data('../pyproject.toml', from_recipe_dir=True) %}
 {% set deps = pyproj.get('project', {}).get('dependencies',[]) %}
 
@@ -8,7 +8,7 @@ package:
   version: "{{ version }}"
 
 source:
-  url: "https://pypi.io/packages/source/i/intake-esm-access/intake_esm_access-{{ version }}.tar.gz"
+  url: "https://files.pythonhosted.org/packages/source/i/intake-esm-access/intake_esm_access-{{ version }}.tar.gz"
 
 build:
   noarch: python
