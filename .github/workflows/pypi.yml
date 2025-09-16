@@ -9,6 +9,7 @@ on:
 jobs:
   pypi:
     name: build and deploy to PyPI
+    if: github.repository == 'ACCESS-NRI/intake-esm' && github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
     runs-on: "ubuntu-latest"
     outputs:
       intake-esm-version: ${{ steps.verify.outputs.intake-esm-version }}
