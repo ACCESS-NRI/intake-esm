@@ -27,7 +27,7 @@ from intake.catalog import Catalog
 from .cat import ESMCatalogModel
 from .derived import DerivedVariableRegistry, default_registry
 from .source import ESMDataSource
-from .utils import MinimalExploder
+from .utils import MinimalExploder, _get_threaded
 
 
 class esm_datastore(Catalog):
@@ -943,18 +943,3 @@ class esm_datastore(Catalog):
 
 def _load_source(key, source):
     return key, source.to_dask()
-
-
-def _get_threaded(threaded: bool | None) -> bool:
-    """
-    Read the threading option from the environment variable & passed value
-    """
-    if threaded is None:
-        try:
-            threaded = ast.literal_eval(os.getenv('ITK_ESM_THREADING', 'True'))
-        except ValueError as e:
-            raise ValueError(
-                'The environment variable ITK_ESM_THREADING must be a boolean, if set.'
-            ) from e
-
-    return threaded
