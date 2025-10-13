@@ -1,6 +1,8 @@
 """Helper functions for fetching and loading catalog"""
 
+import ast
 import importlib
+import os
 import sys
 from collections import defaultdict
 
@@ -115,6 +117,21 @@ def _set_async_flag(data_format: str, xarray_open_kwargs: dict) -> dict:
         xarray_open_kwargs = storage_opts_template
 
     return xarray_open_kwargs
+
+
+def _get_threaded(threaded: bool | None) -> bool:
+    """
+    Read the threading option from the environment variable & passed value
+    """
+    if threaded is None:
+        try:
+            threaded = ast.literal_eval(os.getenv('ITK_ESM_THREADING', 'True'))
+        except ValueError as e:
+            raise ValueError(
+                'The environment variable ITK_ESM_THREADING must be a boolean, if set.'
+            ) from e
+
+    return threaded
 
 
 OPTIONS = {
