@@ -1,6 +1,7 @@
 import ast
 import json
 import os
+import warnings
 from unittest import mock
 
 import intake
@@ -576,11 +577,15 @@ def test_multi_variable_catalog_derived_cat():
 def test_to_dataset_dict(path, query, xarray_open_kwargs):
     cat = intake.open_esm_datastore(path)
     cat_sub = cat.search(**query)
-    _, ds = cat_sub.to_dataset_dict(xarray_open_kwargs=xarray_open_kwargs).popitem()
+    with warnings.catch_warnings(category=FutureWarning) as records:
+        _, ds = cat_sub.to_dataset_dict(xarray_open_kwargs=xarray_open_kwargs).popitem()
     if path != cdf_cat_sample_cmip6_noagg:
         assert 'member_id' in ds.dims
     assert len(ds.__dask_keys__()) > 0
     assert ds.time.encoding
+
+    if records:
+        assert False
 
 
 @pytest.mark.parametrize(
