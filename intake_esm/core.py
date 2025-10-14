@@ -318,6 +318,11 @@ class esm_datastore(Catalog):
                     records = [grouped.loc[internal_key].to_dict()]
 
                 else:
+                    if isinstance(internal_key, str):
+                        # FutureWarning: When grouping with a length-1 list-like,
+                        # you will need to pass a length-1 tuple to get_group in a future version of pandas.
+                        # Pass `(name,)` instead of `name` to silence this warning
+                        internal_key = (internal_key,)
                     records = grouped.get_group(internal_key).to_dict(orient='records')
 
                 if self.esmcat.aggregation_control:
