@@ -355,11 +355,14 @@ class ESMCatalogModel(pydantic.BaseModel):
             csv_path = f'{os.path.dirname(_mapper.root)}/{cat.catalog_file}'
         cat.catalog_file = csv_path
 
+        if cat.catalog_file is None:
+            raise AssertionError('catalog_file cannot be None here. Mostly for mypy..')
+
         if cat.catalog_file.endswith('.csv.gz') or cat.catalog_file.endswith('.csv'):
             self._driver = PolarsCsvDriver(cat.catalog_file, storage_options, **read_kwargs)
         elif cat.catalog_file.endswith('.parquet'):
             self._driver = PolarsParquetDriver(cat.catalog_file, storage_options, **read_kwargs)
-        elif cat.catalog_file.endswith('.csv.bz2') or cat.catalog_file.endswith('.csv.xz'):
+        else:
             self._driver = PandasCsvDriver(cat.catalog_file, storage_options, **read_kwargs)
 
         self._iterable_dtype_map = self._driver.dtype_map

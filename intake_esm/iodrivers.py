@@ -119,10 +119,10 @@ class CatalogFileIoDriver:
             raise AssertionError('catalog_file must be set to a valid file path or URL')
 
         self._dtype_map: dict[str, str] = {}
-        self._frames = None
+        self._frames: FramesModel | None = None
 
     @abstractmethod
-    def read(self) -> FramesModel: ...
+    def read(self) -> None: ...
 
     @abstractmethod
     def write(self) -> None: ...
@@ -130,14 +130,16 @@ class CatalogFileIoDriver:
     @property
     def dtype_map(self) -> dict[str, str]:
         """Return a map of column names to their dtypes for columns with iterables."""
+        if self._frames is None:
+            self.read()
         return self._dtype_map
 
     @property
     def frames(self) -> FramesModel:
         """Return the FramesModel containing the dataframes read from the catalog file."""
         if self._frames is None:
-            self._frames = self.read()
-        return self._frames
+            self.read()
+        return self._frames  # type: ignore[return-value]
 
     @property
     @abstractmethod
@@ -159,7 +161,7 @@ class PolarsCsvDriver(CatalogFileIoDriver):
     ):
         super().__init__(catalog_file, storage_options, **read_kwargs)
 
-    def read(self) -> FramesModel:
+    def read(self) -> None:
         """Read a catalog file stored as a csv using polars"""
         converters = self.read_kwargs.pop('converters', {})  # Hack
         # See https://github.com/pola-rs/polars/issues/13040 - can't use read_csv.
@@ -202,7 +204,7 @@ class PolarsCsvDriver(CatalogFileIoDriver):
                 for colname in converters.keys()
             ]
         )
-        return FramesModel(lf=lf)
+        self._frames = FramesModel(lf=lf)
 
     def write(self) -> None:
         raise NotImplementedError('TODO')
@@ -227,14 +229,15 @@ class PolarsParquetDriver(CatalogFileIoDriver):
     ):
         super().__init__(catalog_file, storage_options, **read_kwargs)
 
-    def read(self) -> FramesModel:
+    def read(self) -> None:
         """Read a catalog file stored as a parquet using polars"""
         lf = pl.scan_parquet(
             self.catalog_file,  # type: ignore[arg-type]
             storage_options=self.storage_options,
             **self.read_kwargs,
         )
-        return FramesModel(lf=lf)
+        self._frames = FramesModel(lf=lf)
+        self._dtype_map = {}
 
     def write(self) -> None:
         raise NotImplementedError('TODO')
@@ -259,7 +262,7 @@ class PandasCsvDriver(CatalogFileIoDriver):
     ):
         super().__init__(catalog_file, storage_options, **read_kwargs)
 
-    def read(self) -> FramesModel:
+    def read(self) -> None:
         """Read a catalog file stored as a csv using pandas"""
         df = pd.read_csv(
             self.catalog_file,
@@ -270,7 +273,7 @@ class PandasCsvDriver(CatalogFileIoDriver):
             colname: df['colname'].dtype
             for colname in self.read_kwargs.get('converters', {}).keys()
         }
-        return FramesModel(df=df)
+        self._frames = FramesModel(df=df)
 
     def write(self) -> None:
         raise NotImplementedError('TODO')
@@ -295,7 +298,7 @@ class PandasParquetDriver(CatalogFileIoDriver):
     ):
         super().__init__(catalog_file, storage_options, **read_kwargs)
 
-    def read(self) -> FramesModel:
+    def read(self) -> None:
         raise NotImplementedError('PandasDriver does not currently support reading parquet files')
 
     def write(self) -> None:
