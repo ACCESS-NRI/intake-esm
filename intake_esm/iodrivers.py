@@ -10,7 +10,6 @@ import pydantic
 from pydantic import ConfigDict
 
 __filetypes__ = ['csv', 'csv.bz2', 'csv.gz', 'csv.zip', 'csv.xz', 'parquet']
-__framereaders__ = [pl, pd]
 
 
 class FramesModel(pydantic.BaseModel):
@@ -119,22 +118,6 @@ class CatalogFileIoDriver:
         if self.catalog_file is None:
             raise AssertionError('catalog_file must be set to a valid file path or URL')
 
-        # I think we want to replace this with a dict lookup.
-        if self.catalog_file.endswith('.csv.gz') or self.catalog_file.endswith('.csv'):
-            self.driver = 'polars'
-            self.filetype = 'csv'
-        elif self.catalog_file.endswith('.parquet'):
-            self.driver = 'polars'
-            self.filetype = 'parquet'
-        elif self.catalog_file.endswith('.csv.bz2') or self.catalog_file.endswith('.csv.xz'):
-            self.driver = 'pandas'
-            self.filetype = 'csv'
-        else:
-            raise ValueError(
-                f'Unsupported file type for catalog_file {self.catalog_file}. '
-                f'Expected one of {__filetypes__}'
-            )
-
         self._dtype_map: dict[str, str] = {}
         self._frames = None
 
@@ -156,12 +139,12 @@ class CatalogFileIoDriver:
             self._frames = self.read()
         return self._frames
 
-    @abstractmethod
     @property
+    @abstractmethod
     def filetype(self) -> str: ...
 
-    @abstractmethod
     @property
+    @abstractmethod
     def driver(self) -> str: ...
 
 

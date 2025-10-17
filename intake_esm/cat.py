@@ -362,8 +362,8 @@ class ESMCatalogModel(pydantic.BaseModel):
         elif cat.catalog_file.endswith('.csv.bz2') or cat.catalog_file.endswith('.csv.xz'):
             self._driver = PandasCsvDriver(cat.catalog_file, storage_options, **read_kwargs)
 
-        self._iterable_dtype_map = self.driver.dtype_map
-        return self.driver.frames
+        self._iterable_dtype_map = self._driver.dtype_map
+        return self._driver.frames
 
     @property
     def lf(self) -> pl.LazyFrame:
