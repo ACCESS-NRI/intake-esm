@@ -319,9 +319,6 @@ class esm_datastore(Catalog):
 
                 else:
                     if isinstance(internal_key, str):
-                        # import pdb
-
-                        # pdb.set_trace()
                         # FutureWarning: When grouping with a length-1 list-like,
                         # you will need to pass a length-1 tuple to get_group in a future version of pandas.
                         # Pass `(name,)` instead of `name` to silence this warning
