@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import builtins
 import datetime
 import enum
 import functools
@@ -18,11 +17,14 @@ from pydantic import ConfigDict
 
 from ._search import search, search_apply_require_all_on
 from .iodrivers import (
-    CatalogFileIoDriver,
+    CatalogFileReader,
+    CatalogFileWriter,
     FramesModel,
-    PandasCsvDriver,
-    PolarsCsvDriver,
-    PolarsParquetDriver,
+    PandasCsvReader,
+    PandasCsvWriter,
+    PandasParquetWriter,
+    PolarsCsvReader,
+    PolarsParquetReader,
 )
 
 
@@ -124,7 +126,7 @@ class ESMCatalogModel(pydantic.BaseModel):
     last_updated: datetime.datetime | datetime.date | None = None
     _df: pd.DataFrame | None = pydantic.PrivateAttr()
     _frames: FramesModel | None = pydantic.PrivateAttr()
-    _driver: CatalogFileIoDriver | None = pydantic.PrivateAttr(default=None)
+    _driver: CatalogFileReader | None = pydantic.PrivateAttr(default=None)
     _iterable_dtype_map: dict[str, str] = pydantic.PrivateAttr(default_factory=dict)
 
     model_config = ConfigDict(arbitrary_types_allowed=True, validate_assignment=True)
@@ -219,55 +221,36 @@ class ESMCatalogModel(pydantic.BaseModel):
                 f'catalog_type must be either "dict" or "file". Received catalog_type={catalog_type}'
             )
 
-        # Check if the directory is None, and if it is, set it to the current directory
-        if directory is None:
-            directory = os.getcwd()
+        if file_format not in {'csv', 'parquet'}:
+            raise ValueError(
+                f'file_format must be either "csv" or "parquet". Received file_format={file_format}'
+            )
 
-        # Configure the fsspec mapper and associated filenames
-        storage_options = storage_options if storage_options is not None else {}
-        mapper = fsspec.get_mapper(f'{directory}', **storage_options)
-        fs = mapper.fs
-        csv_file_name = fs.unstrip_protocol(f'{mapper.root}/{name}.csv')
-        json_file_name = fs.unstrip_protocol(f'{mapper.root}/{name}.json')
+        file_writer_kwargs = {
+            'data': self.model_dump().copy(),
+            'df': self.df,
+            'dtype_map': self._iterable_dtype_map,
+            'name': name,
+            'directory': directory,
+            'catalog_type': catalog_type,
+            'file_format': file_format,
+            'write_kwargs': write_kwargs,
+            'json_dump_kwargs': json_dump_kwargs,
+            'storage_options': storage_options,
+        }
 
-        data = self.model_dump().copy()
-        for key in {'catalog_dict', 'catalog_file'}:
-            data.pop(key, None)
-        data['id'] = name
-        data['last_updated'] = datetime.datetime.now(datetime.timezone.utc).strftime(
-            '%Y-%m-%dT%H:%M:%SZ'
-        )
-
-        _tmp_df = self.df.copy(deep=True)
-
-        for colname, dtype in self._iterable_dtype_map.items():
-            _tmp_df[colname] = _tmp_df[colname].apply(getattr(builtins, dtype))
-
-        if catalog_type == 'file':
-            csv_kwargs: dict[str, typing.Any] = {'index': False}
-            csv_kwargs |= write_kwargs or {}
-            compression = csv_kwargs.get('compression', '')
-            extensions = {'gzip': '.gz', 'bz2': '.bz2', 'zip': '.zip', 'xz': '.xz'}
-            if file_format == 'csv':
-                csv_file_name = f'{csv_file_name}{extensions.get(compression, "")}'
-                data['catalog_file'] = str(csv_file_name)
-                with fs.open(csv_file_name, 'wb') as csv_outfile:
-                    _tmp_df.to_csv(csv_outfile, **csv_kwargs)
-            elif file_format == 'parquet':
-                pq_file_name = f'{csv_file_name.rstrip(".csv")}.parquet'
-                data['catalog_file'] = str(pq_file_name)
-                write_kwargs.pop('compression', None)
-                with fs.open(pq_file_name, 'wb') as pq_outfile:
-                    _tmp_df.to_parquet(pq_outfile, **write_kwargs)
+        if catalog_type == 'dict':
+            writer = CatalogFileWriter
+        elif file_format == 'csv':
+            writer = PandasCsvWriter
+        elif file_format == 'parquet':
+            writer = PandasParquetWriter
         else:
-            data['catalog_dict'] = _tmp_df.to_dict(orient='records')
+            raise NotImplementedError(
+                f'Writer for catalog_type={catalog_type} and file_format={file_format} not implemented'
+            )
 
-        with fs.open(json_file_name, 'w') as outfile:
-            json_kwargs = {'indent': 2}
-            json_kwargs |= json_dump_kwargs or {}
-            json.dump(data, outfile, **json_kwargs)  # type: ignore[arg-type]
-
-        print(f'Successfully wrote ESM catalog json file to: {json_file_name}')
+        return writer.write(**file_writer_kwargs)
 
     @classmethod
     def load(
@@ -359,11 +342,11 @@ class ESMCatalogModel(pydantic.BaseModel):
             raise AssertionError('catalog_file cannot be None here. Mostly for mypy..')
 
         if cat.catalog_file.endswith('.csv.gz') or cat.catalog_file.endswith('.csv'):
-            self._driver = PolarsCsvDriver(cat.catalog_file, storage_options, **read_kwargs)
+            self._driver = PolarsCsvReader(cat.catalog_file, storage_options, **read_kwargs)
         elif cat.catalog_file.endswith('.parquet'):
-            self._driver = PolarsParquetDriver(cat.catalog_file, storage_options, **read_kwargs)
+            self._driver = PolarsParquetReader(cat.catalog_file, storage_options, **read_kwargs)
         else:
-            self._driver = PandasCsvDriver(cat.catalog_file, storage_options, **read_kwargs)
+            self._driver = PandasCsvReader(cat.catalog_file, storage_options, **read_kwargs)
 
         self._iterable_dtype_map = self._driver.dtype_map
         return self._driver.frames

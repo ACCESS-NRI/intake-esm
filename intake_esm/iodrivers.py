@@ -5,6 +5,7 @@ import datetime
 import json
 import os
 import typing
+from abc import ABC, abstractmethod
 
 import fsspec
 import pandas as pd
@@ -105,7 +106,7 @@ class FramesModel(pydantic.BaseModel):
         )
 
 
-class CatalogFileIoDriver:
+class CatalogFileReader(ABC):
     """Abstracts away some of the complexity related to reading dataframes"""
 
     def __init__(
@@ -126,19 +127,6 @@ class CatalogFileIoDriver:
 
     @abstractmethod
     def read(self) -> None: ...
-
-    @abstractmethod
-    def write(
-        self,
-        name: str,
-        *,
-        directory: str | None = None,
-        catalog_type: str = 'dict',
-        file_format: str = 'csv',
-        write_kwargs: dict | None = None,
-        json_dump_kwargs: dict | None = None,
-        storage_options: dict[str, typing.Any] | None = None,
-    ) -> None: ...
 
     @property
     def dtype_map(self) -> dict[str, str]:
@@ -163,7 +151,7 @@ class CatalogFileIoDriver:
     def driver(self) -> str: ...
 
 
-class PolarsCsvDriver(CatalogFileIoDriver):
+class PolarsCsvReader(CatalogFileReader):
     """A driver to read catalog files from csv using polars"""
 
     def __init__(
@@ -241,7 +229,7 @@ class PolarsCsvDriver(CatalogFileIoDriver):
         return 'polars'
 
 
-class PolarsParquetDriver(CatalogFileIoDriver):
+class PolarsParquetReader(CatalogFileReader):
     """A driver to read catalog files from parquet using polars"""
 
     def __init__(
@@ -284,7 +272,7 @@ class PolarsParquetDriver(CatalogFileIoDriver):
         return 'polars'
 
 
-class PandasCsvDriver(CatalogFileIoDriver):
+class PandasCsvReader(CatalogFileReader):
     """A driver to read catalog files from csv using pandas"""
 
     def __init__(
@@ -310,6 +298,7 @@ class PandasCsvDriver(CatalogFileIoDriver):
 
     def write(
         self,
+        data: dict,
         name: str,
         *,
         directory: str | None = None,
@@ -330,7 +319,6 @@ class PandasCsvDriver(CatalogFileIoDriver):
         csv_file_name = fs.unstrip_protocol(f'{mapper.root}/{name}.csv')
         json_file_name = fs.unstrip_protocol(f'{mapper.root}/{name}.json')
 
-        data = self.model_dump().copy()
         for key in {'catalog_dict', 'catalog_file'}:
             data.pop(key, None)
         data['id'] = name
@@ -338,9 +326,9 @@ class PandasCsvDriver(CatalogFileIoDriver):
             '%Y-%m-%dT%H:%M:%SZ'
         )
 
-        _tmp_df = self.df.copy(deep=True)
+        _tmp_df = self._frames.pandas.copy(deep=True)
 
-        for colname, dtype in self._iterable_dtype_map.items():
+        for colname, dtype in self._dtype_map.items():
             _tmp_df[colname] = _tmp_df[colname].apply(getattr(builtins, dtype))
 
         if catalog_type == 'file':
@@ -378,7 +366,7 @@ class PandasCsvDriver(CatalogFileIoDriver):
         return 'pandas'
 
 
-class PandasParquetDriver(CatalogFileIoDriver):
+class PandasParquetReader(CatalogFileReader):
     """A driver to read catalog files from csv using pandas"""
 
     def __init__(
@@ -412,3 +400,206 @@ class PandasParquetDriver(CatalogFileIoDriver):
     @property
     def driver(self) -> str:
         return 'pandas'
+
+
+class CatalogFileWriter:
+    """Abstracts away some of the complexity related to writing dataframes"""
+
+    mapper: fsspec.FSMap = None
+
+    @classmethod
+    def write(
+        cls,
+        data: dict,
+        df: pd.DataFrame,
+        dtype_map: dict[str, str],
+        name: str,
+        *,
+        write_kwargs: dict,
+        directory: str | None = None,
+        catalog_type: str = 'dict',
+        file_format: str = 'csv',
+        json_dump_kwargs: dict | None = None,
+        storage_options: dict[str, typing.Any] | None = None,
+    ) -> None:
+        if catalog_type != 'dict':
+            raise ValueError(f"{cls.__name__} class should only be used with catalog_type='dict'")
+
+        data, fs, json_file_name = cls._common(name, directory, storage_options, data)
+
+        _tmp_df = df.copy(deep=True)
+
+        for colname, dtype in dtype_map.items():
+            _tmp_df[colname] = _tmp_df[colname].apply(getattr(builtins, dtype))
+
+        data['catalog_dict'] = _tmp_df.to_dict(orient='records')
+
+        with fs.open(json_file_name, 'w') as outfile:
+            json_kwargs = {'indent': 2}
+            json_kwargs |= json_dump_kwargs or {}
+            json.dump(data, outfile, **json_kwargs)  # type: ignore[arg-type]
+
+        print(f'Successfully wrote ESM catalog json file to: {json_file_name}')
+
+    @classmethod
+    def _common(
+        cls,
+        name: str,
+        directory: str | None,
+        storage_options: dict[str, typing.Any] | None,
+        data: dict,
+    ) -> tuple[dict, typing.Any, str]:
+        """
+        Common functionality for writing catalog files.
+        """
+
+        # Check if the directory is None, and if it is, set it to the current directory
+        if directory is None:
+            directory = os.getcwd()
+
+        # Configure the fsspec mapper and associated filenames
+        storage_options = storage_options if storage_options is not None else {}
+        cls.mapper = fsspec.get_mapper(f'{directory}', **storage_options)
+        fs = cls.mapper.fs
+        json_file_name = fs.unstrip_protocol(f'{cls.mapper.root}/{name}.json')
+
+        for key in {'catalog_dict', 'catalog_file'}:
+            data.pop(key, None)
+
+        data['id'] = name
+        data['last_updated'] = datetime.datetime.now(datetime.timezone.utc).strftime(
+            '%Y-%m-%dT%H:%M:%SZ'
+        )
+
+        return data, fs, json_file_name
+
+
+class PandasCsvWriter(CatalogFileWriter):
+    """A driver to write catalog files to csv using pandas"""
+
+    @classmethod
+    def write(
+        cls,
+        data: dict,
+        df: pd.DataFrame,
+        dtype_map: dict[str, str],
+        name: str,
+        *,
+        write_kwargs: dict,
+        directory: str | None = None,
+        catalog_type: str = 'dict',
+        file_format: str = 'csv',
+        json_dump_kwargs: dict | None = None,
+        storage_options: dict[str, typing.Any] | None = None,
+    ) -> None:
+        # Check if the directory is None, and if it is, set it to the current directory
+        if catalog_type != 'file':
+            raise ValueError(f"{cls.__name__} class should only be used with catalog_type='file'")
+        if file_format != 'csv':
+            raise ValueError(f"{cls.__name__} class should only be used with file_format='csv'")
+
+        data, fs, json_file_name = cls._common(name, directory, storage_options, data)
+        csv_file_name = fs.unstrip_protocol(f'{cls.mapper.root}/{name}.csv')
+
+        _tmp_df = df.copy(deep=True)
+
+        for colname, dtype in dtype_map.items():
+            _tmp_df[colname] = _tmp_df[colname].apply(getattr(builtins, dtype))
+
+        csv_kwargs: dict[str, typing.Any] = {'index': False}
+        csv_kwargs |= write_kwargs or {}
+        compression = csv_kwargs.get('compression', '')
+        extensions = {'gzip': '.gz', 'bz2': '.bz2', 'zip': '.zip', 'xz': '.xz'}
+
+        csv_file_name = f'{csv_file_name}{extensions.get(compression, "")}'
+        data['catalog_file'] = str(csv_file_name)
+        with fs.open(csv_file_name, 'wb') as csv_outfile:
+            _tmp_df.to_csv(csv_outfile, **csv_kwargs)
+
+        with fs.open(json_file_name, 'w') as outfile:
+            json_kwargs = {'indent': 2}
+            json_kwargs |= json_dump_kwargs or {}
+            json.dump(data, outfile, **json_kwargs)  # type: ignore[arg-type]
+
+        print(f'Successfully wrote ESM catalog json file to: {json_file_name}')
+
+
+class PandasParquetWriter(CatalogFileWriter):
+    """A driver to write catalog files to parquet using pandas"""
+
+    @classmethod
+    def write(
+        cls,
+        data: dict,
+        df: pd.DataFrame,
+        dtype_map: dict[str, str],
+        name: str,
+        *,
+        directory: str | None = None,
+        catalog_type: str = 'dict',
+        file_format: str = 'csv',
+        write_kwargs: dict,
+        json_dump_kwargs: dict | None = None,
+        storage_options: dict[str, typing.Any] | None = None,
+    ) -> None:
+        if catalog_type != 'file':
+            raise ValueError(f"{cls.__name__} class should only be used with catalog_type='file'")
+        if file_format != 'parquet':
+            raise ValueError(f"{cls.__name__} class should only be used with file_format='parquet'")
+        data, fs, json_file_name = cls._common(name, directory, storage_options, data)
+        pq_file_name = fs.unstrip_protocol(f'{cls.mapper.root}/{name}.parquet')
+
+        write_kwargs |= {'index': False}
+
+        data['catalog_file'] = str(pq_file_name)
+        with fs.open(pq_file_name, 'wb') as pq_outfile:
+            df.to_parquet(pq_outfile, **write_kwargs)
+
+        with fs.open(json_file_name, 'w') as outfile:
+            json_kwargs = {'indent': 2}
+            json_kwargs |= json_dump_kwargs or {}
+            json.dump(data, outfile, **json_kwargs)  # type: ignore[arg-type]
+
+        print(f'Successfully wrote ESM catalog json file to: {json_file_name}')
+
+
+class PolarsCsvWriter(CatalogFileWriter):
+    """A driver to write catalog files to csv using polars"""
+
+    @classmethod
+    def write(
+        cls,
+        data: dict,
+        df: pd.DataFrame,
+        dtype_map: dict[str, str],
+        name: str,
+        *,
+        write_kwargs: dict,
+        directory: str | None = None,
+        catalog_type: str = 'dict',
+        file_format: str = 'csv',
+        json_dump_kwargs: dict | None = None,
+        storage_options: dict[str, typing.Any] | None = None,
+    ) -> None:
+        raise NotImplementedError('TODO')
+
+
+class PolarsParquetWriter(CatalogFileWriter):
+    """A driver to write catalog files to parquet using polars"""
+
+    @classmethod
+    def write(
+        cls,
+        data: dict,
+        df: pd.DataFrame,
+        dtype_map: dict[str, str],
+        name: str,
+        *,
+        write_kwargs: dict,
+        directory: str | None = None,
+        catalog_type: str = 'dict',
+        file_format: str = 'csv',
+        json_dump_kwargs: dict | None = None,
+        storage_options: dict[str, typing.Any] | None = None,
+    ) -> None:
+        raise NotImplementedError('TODO')
