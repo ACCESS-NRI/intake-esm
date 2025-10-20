@@ -1,6 +1,7 @@
 """Helper functions for fetching and loading catalog"""
 
 import ast
+import enum
 import importlib
 import os
 import sys
@@ -284,3 +285,13 @@ class MinimalExploder:
             result_df = result_df.explode(*group)
 
         return result_df
+
+
+class Reader(str, enum.Enum):
+    """Enumeration of supported IO drivers."""
+
+    PANDAS_CSV = 'pandas_csv'
+    POLARS_CSV = 'polars_csv'
+    POLARS_PARQUET = 'polars_parquet'
+    PANDAS_PARQUET = 'pandas_parquet'
+    INFER = 'infer'

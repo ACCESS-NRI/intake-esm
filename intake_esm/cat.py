@@ -26,6 +26,7 @@ from .iodrivers import (
     PolarsCsvReader,
     PolarsParquetReader,
 )
+from .utils import Reader
 
 
 def _allnan_or_nonan(df, column: str) -> bool:
@@ -258,6 +259,7 @@ class ESMCatalogModel(pydantic.BaseModel):
         json_file: str | pydantic.FilePath | pydantic.AnyUrl,
         storage_options: dict[str, typing.Any] | None = None,
         read_kwargs: dict[str, typing.Any] | None = None,
+        df_reader=typing.Literal['polars', 'pandas', 'infer'],
     ) -> ESMCatalogModel:
         """
         Loads the catalog from a file
@@ -286,7 +288,9 @@ class ESMCatalogModel(pydantic.BaseModel):
                 data['last_updated'] = None
             cat = cls.model_validate(data)
             if cat.catalog_file:
-                cat._frames = cat._df_from_file(cat, _mapper, storage_options, read_kwargs)
+                cat._frames = cat._df_from_file(
+                    cat, _mapper, storage_options, read_kwargs, df_reader
+                )
             else:
                 cat._frames = FramesModel(
                     lf=pl.LazyFrame(cat.catalog_dict),
@@ -302,10 +306,11 @@ class ESMCatalogModel(pydantic.BaseModel):
         _mapper: fsspec.FSMap,
         storage_options: dict[str, typing.Any],
         read_kwargs: dict[str, typing.Any],
+        df_reader: Reader,
     ) -> FramesModel:
         """
-        Read the catalog file from disk, falling back to pandas for bz2 files which
-        polars can't read.
+        Read the catalog file from disk. If a reader is specified, that will be
+        used. Else, the reader will be inferred from the file extension.
 
         Returns a FramesModel, which contains at least one of:
         - a polars LazyFrame
@@ -341,12 +346,31 @@ class ESMCatalogModel(pydantic.BaseModel):
         if cat.catalog_file is None:
             raise AssertionError('catalog_file cannot be None here. Mostly for mypy..')
 
-        if cat.catalog_file.endswith('.csv.gz') or cat.catalog_file.endswith('.csv'):
-            self._driver = PolarsCsvReader(cat.catalog_file, storage_options, **read_kwargs)
-        elif cat.catalog_file.endswith('.parquet'):
+        if _is_parquet(cat.catalog_file):  # Parquet files only have polars support for now
+            if df_reader == 'pandas':
+                warnings.warn(
+                    'Pandas parquet reader is not implemented yet. Falling back to polars parquet reader.',
+                    UserWarning,
+                    stacklevel=2,
+                )
             self._driver = PolarsParquetReader(cat.catalog_file, storage_options, **read_kwargs)
-        else:
+        elif _pd_only_compression(cat.catalog_file):
+            if df_reader == 'polars':
+                warnings.warn(
+                    'Polars does not support reading all compressed CSV files. Falling back to pandas CSV reader.',
+                    UserWarning,
+                    stacklevel=2,
+                )
             self._driver = PandasCsvReader(cat.catalog_file, storage_options, **read_kwargs)
+        elif df_reader == 'pandas':
+            self._driver = PandasCsvReader(cat.catalog_file, storage_options, **read_kwargs)
+        elif df_reader == 'polars':
+            self._driver = PolarsCsvReader(cat.catalog_file, storage_options, **read_kwargs)
+        else:
+            warnings.warn(
+                'Unexpected state, falling back to polars CSV reader.', UserWarning, stacklevel=2
+            )
+            self._driver = PolarsCsvReader(cat.catalog_file, storage_options, **read_kwargs)
 
         self._iterable_dtype_map = self._driver.dtype_map
         return self._driver.frames
@@ -513,3 +537,12 @@ class QueryModel(pydantic.BaseModel):
 
         model.query = _query
         return model
+
+
+def _is_parquet(file_path: str) -> bool:
+    return file_path.lower().endswith('.parquet')
+
+
+def _pd_only_compression(file_path: str) -> bool:
+    pd_only_compressions = ['.zip', '.xz', '.bz2', '.zst']
+    return any(file_path.lower().endswith(ext) for ext in pd_only_compressions)

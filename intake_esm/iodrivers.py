@@ -291,7 +291,13 @@ class PandasCsvReader(CatalogFileReader):
             **self.read_kwargs,
         )
         self._dtype_map = {
-            colname: df['colname'].dtype
+            colname: df.head(1)[colname]
+            .astype(str)
+            .str[0]
+            .map(
+                {'[': 'list', '{': 'set', '(': 'tuple'},
+            )
+            .iloc[0]
             for colname in self.read_kwargs.get('converters', {}).keys()
         }
         self._frames = FramesModel(df=df)
