@@ -12,6 +12,7 @@ import polars as pl
 import pydantic
 import pytest
 import xarray as xr
+from pandas.testing import assert_frame_equal as assert_frame_equal_pd
 from polars.testing import assert_frame_equal as assert_frame_equal_pl
 
 if packaging.version.Version(xr.__version__) < packaging.version.Version('2024.10'):
@@ -471,13 +472,27 @@ def test_catalog_serialize(catalog_type, to_csv_kwargs, json_dump_kwargs, direct
         ]
     )
 
+    assert_frame_equal_pd(
+        cat_subset.df.reset_index(drop=True),
+        cat.df.reset_index(drop=True),
+    )
+
+    # Cast all Nans to None for comparison here - unimportant in practice
     df = cat.esmcat.pl_df.with_columns(
         [
-            pl.col(colname).cast(pl.Null)
+            pl.col(colname).fill_nan(None)
             for colname in cat.esmcat._frames.pl_df.columns
-            if cat.esmcat._frames.pl_df.get_column(colname).is_null().all()
+            if cat.esmcat.pl_df.get_column(colname).dtype == pl.Float64
         ]
     )
+    df = df.with_columns(
+        [
+            pl.col(colname).cast(pl.Null)
+            for colname in df.columns
+            if df.get_column(colname).is_null().all()
+        ]
+    )
+
     assert_frame_equal_pl(
         subset_df,
         df,
