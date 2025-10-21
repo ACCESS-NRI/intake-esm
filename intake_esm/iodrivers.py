@@ -208,19 +208,6 @@ class PolarsCsvReader(CatalogFileReader):
         )
         self._frames = FramesModel(lf=lf)
 
-    def write(
-        self,
-        name: str,
-        *,
-        directory: str | None = None,
-        catalog_type: str = 'dict',
-        file_format: str = 'csv',
-        write_kwargs: dict | None = None,
-        json_dump_kwargs: dict | None = None,
-        storage_options: dict[str, typing.Any] | None = None,
-    ) -> None:
-        raise NotImplementedError('TODO')
-
     @property
     def filetype(self) -> str:
         return 'csv'
@@ -250,19 +237,6 @@ class PolarsParquetReader(CatalogFileReader):
         )
         self._frames = FramesModel(lf=lf)
         self._dtype_map = {}
-
-    def write(
-        self,
-        name: str,
-        *,
-        directory: str | None = None,
-        catalog_type: str = 'dict',
-        file_format: str = 'csv',
-        write_kwargs: dict | None = None,
-        json_dump_kwargs: dict | None = None,
-        storage_options: dict[str, typing.Any] | None = None,
-    ) -> None:
-        raise NotImplementedError('TODO')
 
     @property
     def filetype(self) -> str:
@@ -305,67 +279,6 @@ class PandasCsvReader(CatalogFileReader):
         df[list(self._dtype_map.keys())] = df[list(self._dtype_map.keys())].map(tuple)
         self._frames = FramesModel(df=df)
 
-    def write(
-        self,
-        data: dict,
-        name: str,
-        *,
-        directory: str | None = None,
-        catalog_type: str = 'dict',
-        file_format: str = 'csv',
-        write_kwargs: dict | None = None,
-        json_dump_kwargs: dict | None = None,
-        storage_options: dict[str, typing.Any] | None = None,
-    ) -> None:
-        # Check if the directory is None, and if it is, set it to the current directory
-        if directory is None:
-            directory = os.getcwd()
-
-        # Configure the fsspec mapper and associated filenames
-        storage_options = storage_options if storage_options is not None else {}
-        mapper = fsspec.get_mapper(f'{directory}', **storage_options)
-        fs = mapper.fs
-        csv_file_name = fs.unstrip_protocol(f'{mapper.root}/{name}.csv')
-        json_file_name = fs.unstrip_protocol(f'{mapper.root}/{name}.json')
-
-        for key in {'catalog_dict', 'catalog_file'}:
-            data.pop(key, None)
-        data['id'] = name
-        data['last_updated'] = datetime.datetime.now(datetime.timezone.utc).strftime(
-            '%Y-%m-%dT%H:%M:%SZ'
-        )
-
-        _tmp_df = self._frames.pandas.copy(deep=True)
-
-        for colname, dtype in self._dtype_map.items():
-            _tmp_df[colname] = _tmp_df[colname].apply(getattr(builtins, dtype))
-
-        if catalog_type == 'file':
-            csv_kwargs: dict[str, typing.Any] = {'index': False}
-            csv_kwargs |= write_kwargs or {}
-            compression = csv_kwargs.get('compression', '')
-            extensions = {'gzip': '.gz', 'bz2': '.bz2', 'zip': '.zip', 'xz': '.xz'}
-            if file_format == 'csv':
-                csv_file_name = f'{csv_file_name}{extensions.get(compression, "")}'
-                data['catalog_file'] = str(csv_file_name)
-                with fs.open(csv_file_name, 'wb') as csv_outfile:
-                    _tmp_df.to_csv(csv_outfile, **csv_kwargs)
-            elif file_format == 'parquet':
-                pq_file_name = f'{csv_file_name.rstrip(".csv")}.parquet'
-                data['catalog_file'] = str(pq_file_name)
-                write_kwargs.pop('compression', None)
-                with fs.open(pq_file_name, 'wb') as pq_outfile:
-                    _tmp_df.to_parquet(pq_outfile, **write_kwargs)
-        else:
-            data['catalog_dict'] = _tmp_df.to_dict(orient='records')
-
-        with fs.open(json_file_name, 'w') as outfile:
-            json_kwargs = {'indent': 2}
-            json_kwargs |= json_dump_kwargs or {}
-            json.dump(data, outfile, **json_kwargs)  # type: ignore[arg-type]
-
-        print(f'Successfully wrote ESM catalog json file to: {json_file_name}')
-
     @property
     def filetype(self) -> str:
         return 'csv'
@@ -388,19 +301,6 @@ class PandasParquetReader(CatalogFileReader):
 
     def read(self) -> None:
         raise NotImplementedError('PandasDriver does not currently support reading parquet files')
-
-    def write(
-        self,
-        name: str,
-        *,
-        directory: str | None = None,
-        catalog_type: str = 'dict',
-        file_format: str = 'csv',
-        write_kwargs: dict | None = None,
-        json_dump_kwargs: dict | None = None,
-        storage_options: dict[str, typing.Any] | None = None,
-    ) -> None:
-        raise NotImplementedError('TODO')
 
     @property
     def filetype(self) -> str:
