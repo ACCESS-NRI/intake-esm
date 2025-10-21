@@ -371,7 +371,6 @@ class ESMCatalogModel(pydantic.BaseModel):
                 'Unexpected state, falling back to polars CSV reader.', UserWarning, stacklevel=2
             )
             self._driver = PandasCsvReader(cat.catalog_file, storage_options, **read_kwargs)
-            # self._driver = PolarsCsvReader(cat.catalog_file, storage_options, **read_kwargs)
 
         self._iterable_dtype_map = self._driver.dtype_map
         return self._driver.frames
