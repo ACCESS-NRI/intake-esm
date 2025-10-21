@@ -27,7 +27,7 @@ class FramesModel(pydantic.BaseModel):
     model_config = ConfigDict(validate_assignment=True, arbitrary_types_allowed=True)
 
     @pydantic.model_validator(mode='after')
-    def ensure_some(self) -> Self:
+    def ensure_some(self) -> typing.Self:
         """
         Make sure that at least one of the dataframes is not `None` when the model is
         instantiated.
@@ -51,8 +51,9 @@ class FramesModel(pydantic.BaseModel):
 
         self.pl_df = self.lf.collect()  # type: ignore[union-attr]
         self.df = self.pl_df.to_pandas(use_pyarrow_extension_array=False)
-        for colname in self.columns_with_iterables:
-            self.df[colname] = self.df[colname].apply(tuple)
+        self.df[list(self.columns_with_iterables)] = self.df[list(self.columns_with_iterables)].map(
+            tuple
+        )
         return self.df
 
     @property
@@ -284,7 +285,8 @@ class PandasCsvReader(CatalogFileReader):
         super().__init__(catalog_file, storage_options, **read_kwargs)
 
     def read(self) -> None:
-        """Read a catalog file stored as a csv using pandas"""
+        """Read a catalog file stored as a csv using pandas, casting all iterable
+        columns to tuples"""
         df = pd.read_csv(
             self.catalog_file,
             storage_options=self.storage_options,
@@ -300,6 +302,7 @@ class PandasCsvReader(CatalogFileReader):
             .iloc[0]
             for colname in self.read_kwargs.get('converters', {}).keys()
         }
+        df[list(self._dtype_map.keys())] = df[list(self._dtype_map.keys())].map(tuple)
         self._frames = FramesModel(df=df)
 
     def write(

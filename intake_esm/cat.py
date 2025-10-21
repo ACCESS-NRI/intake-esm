@@ -85,7 +85,7 @@ class Assets(pydantic.BaseModel):
     model_config = ConfigDict(validate_assignment=True)
 
     @pydantic.model_validator(mode='after')
-    def _validate_data_format(self) -> Self:
+    def _validate_data_format(self) -> typing.Self:
         data_format, format_column_name = self.format, self.format_column_name
         if data_format is not None and format_column_name is not None:
             raise ValueError('Cannot set both format and format_column_name')
@@ -133,7 +133,7 @@ class ESMCatalogModel(pydantic.BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True, validate_assignment=True)
 
     @pydantic.model_validator(mode='after')
-    def validate_catalog(self) -> Self:
+    def validate_catalog(self) -> typing.Self:
         catalog_dict, catalog_file = self.catalog_dict, self.catalog_file
         if catalog_dict is not None and catalog_file is not None:
             raise ValueError('catalog_dict and catalog_file cannot be set at the same time')
@@ -370,7 +370,8 @@ class ESMCatalogModel(pydantic.BaseModel):
             warnings.warn(
                 'Unexpected state, falling back to polars CSV reader.', UserWarning, stacklevel=2
             )
-            self._driver = PolarsCsvReader(cat.catalog_file, storage_options, **read_kwargs)
+            self._driver = PandasCsvReader(cat.catalog_file, storage_options, **read_kwargs)
+            # self._driver = PolarsCsvReader(cat.catalog_file, storage_options, **read_kwargs)
 
         self._iterable_dtype_map = self._driver.dtype_map
         return self._driver.frames
