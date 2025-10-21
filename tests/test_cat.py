@@ -182,11 +182,11 @@ def test_save_esmcat_invalidformat():
         access_columns_with_tuples_cat, read_kwargs={'converters': {'variable': ast.literal_eval}}
     )
     with tempfile.TemporaryDirectory() as tmpdir:
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match='file_format must be either "csv" or "parquet"'):
             cat.save(
                 'catalog',
                 directory=tmpdir,
-                catalog_type='invalidformat',
+                file_format='invalidformat',
             )
 
 
