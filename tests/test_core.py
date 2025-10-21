@@ -24,6 +24,7 @@ import intake_esm
 from intake_esm.iodrivers import PandasCsvReader, PolarsCsvReader, PolarsParquetReader
 
 from .utils import (
+    access_columns_with_lists_bz2_cat,
     access_columns_with_lists_cat,
     access_columns_with_tuples_cat,
     catalog_dict_records,
@@ -908,6 +909,21 @@ def test_df_reader_parquet(catalog, df_reader, _driver):
         ),
         (
             cdf_cat_sample_cmip5,
+            'infer',
+            PandasCsvReader,
+        ),
+        (
+            access_columns_with_lists_bz2_cat,
+            'polars',
+            PandasCsvReader,
+        ),
+        (
+            access_columns_with_lists_bz2_cat,
+            'pandas',
+            PandasCsvReader,
+        ),
+        (
+            access_columns_with_lists_bz2_cat,
             'infer',
             PandasCsvReader,
         ),

@@ -7,6 +7,7 @@ import json
 import os
 import typing
 import warnings
+from pathlib import Path
 
 import fsspec
 import pandas as pd
@@ -361,7 +362,7 @@ class ESMCatalogModel(pydantic.BaseModel):
         elif _pd_only_compression(cat.catalog_file):
             if df_reader == 'polars':
                 warnings.warn(
-                    'Polars does not support reading all compressed CSV files. Falling back to pandas CSV reader.',
+                    f'Polars does not support reading {Path(cat.catalog_file).suffix} CSV files. Falling back to pandas CSV reader.',
                     UserWarning,
                     stacklevel=2,
                 )

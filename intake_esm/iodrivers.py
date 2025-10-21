@@ -165,7 +165,9 @@ class PolarsCsvReader(CatalogFileReader):
 
     def read(self) -> None:
         """Read a catalog file stored as a csv using polars"""
-        converters = self.read_kwargs.pop('converters', {})  # Hack
+        converters = self.read_kwargs.pop(
+            'converters', {}
+        )  # Hack. N.B polars doesn't have a converters arg so this is safe to do.
         # See https://github.com/pola-rs/polars/issues/13040 - can't use read_csv.
         lf = pl.scan_csv(
             self.catalog_file,  # type: ignore[arg-type]
