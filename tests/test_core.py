@@ -883,7 +883,7 @@ def test__get_threaded(mock_get_env, threaded, ITK_ESM_THREADING, expected):
 @pytest.mark.parametrize('df_reader', ['pandas', 'polars', 'infer'])
 def test_df_reader_parquet(catalog, df_reader, _driver):
     if df_reader == 'pandas':
-        with pytest.warns(UserWarning, match='Pandas not supported for parquet'):
+        with pytest.warns(UserWarning, match='Pandas parquet reader is not implemented yet.'):
             cat = intake.open_esm_datastore(catalog, df_reader=df_reader)
     else:
         with warnings.catch_warnings():
