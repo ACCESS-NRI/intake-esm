@@ -21,6 +21,7 @@ else:
     from xarray import DataTree
 
 import intake_esm
+from intake_esm.iodrivers import PandasCsvReader, PolarsCsvReader, PolarsParquetReader
 
 from .utils import (
     access_columns_with_lists_cat,
@@ -868,3 +869,50 @@ def test__get_threaded(mock_get_env, threaded, ITK_ESM_THREADING, expected):
             intake_esm.core._get_threaded(threaded)
     else:
         assert intake_esm.core._get_threaded(threaded) == expected
+
+
+@pytest.mark.parametrize(
+    'catalog, _driver',
+    [
+        (
+            cdf_cat_sample_cmip5_pq,
+            PolarsParquetReader,
+        ),
+    ],
+)
+@pytest.mark.parametrize('df_reader', ['pandas', 'polars', 'infer'])
+def test_df_reader_parquet(catalog, df_reader, _driver):
+    if df_reader == 'pandas':
+        with pytest.warns(UserWarning, match='Pandas not supported for parquet'):
+            cat = intake.open_esm_datastore(catalog, df_reader=df_reader)
+    else:
+        with warnings.catch_warnings():
+            warnings.simplefilter('error')  # Turn warnings into errors
+            cat = intake.open_esm_datastore(catalog, df_reader=df_reader)
+
+        assert isinstance(cat.esmcat._driver, _driver)
+
+
+@pytest.mark.parametrize(
+    'catalog, df_reader, _driver',
+    [
+        (
+            cdf_cat_sample_cmip5,
+            'polars',
+            PolarsCsvReader,
+        ),
+        (
+            cdf_cat_sample_cmip5,
+            'pandas',
+            PandasCsvReader,
+        ),
+        (
+            cdf_cat_sample_cmip5,
+            'infer',
+            PandasCsvReader,
+        ),
+    ],
+)
+def test_df_reader_csv(catalog, df_reader, _driver):
+    cat = intake.open_esm_datastore(catalog, df_reader=df_reader)
+    assert isinstance(cat.esmcat._driver, _driver)

@@ -177,6 +177,19 @@ def test_esmcatmodel_roundtrip_itercols_type_stable(catalog_file, expected_type)
         assert isinstance(serialised_cat.loc[0, 'variable'], expected_type)
 
 
+def test_save_esmcat_invalidformat():
+    cat = ESMCatalogModel.load(
+        access_columns_with_tuples_cat, read_kwargs={'converters': {'variable': ast.literal_eval}}
+    )
+    with tempfile.TemporaryDirectory() as tmpdir:
+        with pytest.raises(ValueError):
+            cat.save(
+                'catalog',
+                directory=tmpdir,
+                catalog_type='invalidformat',
+            )
+
+
 @pytest.mark.parametrize(
     'query, columns, require_all_on',
     [

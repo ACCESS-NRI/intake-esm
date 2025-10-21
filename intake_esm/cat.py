@@ -247,9 +247,11 @@ class ESMCatalogModel(pydantic.BaseModel):
         elif file_format == 'parquet':
             writer = PandasParquetWriter
         else:
+            # This branch shouldn't be reached because of the earlier validation.
+            # Left in for safety/completeness.
             raise NotImplementedError(
                 f'Writer for catalog_type={catalog_type} and file_format={file_format} not implemented'
-            )
+            )  # pragma: no cover
 
         return writer.write(**file_writer_kwargs)
 
@@ -344,7 +346,9 @@ class ESMCatalogModel(pydantic.BaseModel):
         cat.catalog_file = csv_path
 
         if cat.catalog_file is None:
-            raise AssertionError('catalog_file cannot be None here. Mostly for mypy..')
+            raise AssertionError(
+                'catalog_file cannot be None here. Mostly for mypy..'
+            )  # pragma: no cover
 
         if _is_parquet(cat.catalog_file):  # Parquet files only have polars support for now
             if df_reader == 'pandas':
@@ -367,9 +371,6 @@ class ESMCatalogModel(pydantic.BaseModel):
         elif df_reader == 'polars':
             self._driver = PolarsCsvReader(cat.catalog_file, storage_options, **read_kwargs)
         else:
-            warnings.warn(
-                'Unexpected state, falling back to polars CSV reader.', UserWarning, stacklevel=2
-            )
             self._driver = PandasCsvReader(cat.catalog_file, storage_options, **read_kwargs)
 
         self._iterable_dtype_map = self._driver.dtype_map
