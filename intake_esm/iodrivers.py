@@ -143,14 +143,6 @@ class CatalogFileReader(ABC):
             self.read()
         return self._frames  # type: ignore[return-value]
 
-    @property
-    @abstractmethod
-    def filetype(self) -> str: ...
-
-    @property
-    @abstractmethod
-    def driver(self) -> str: ...
-
 
 class PolarsCsvReader(CatalogFileReader):
     """A driver to read catalog files from csv using polars"""
@@ -210,14 +202,6 @@ class PolarsCsvReader(CatalogFileReader):
         )
         self._frames = FramesModel(lf=lf)
 
-    @property
-    def filetype(self) -> str:
-        return 'csv'
-
-    @property
-    def driver(self) -> str:
-        return 'polars'
-
 
 class PolarsParquetReader(CatalogFileReader):
     """A driver to read catalog files from parquet using polars"""
@@ -228,6 +212,10 @@ class PolarsParquetReader(CatalogFileReader):
         storage_options: dict[str, typing.Any],
         **read_kwargs,
     ):
+        if read_kwargs.get('converters') is not None:
+            # Pop them out - they're being used to read iterable columns, but parquet
+            # supports that out of the box.
+            read_kwargs.pop('converters')
         super().__init__(catalog_file, storage_options, **read_kwargs)
 
     def read(self) -> None:
@@ -239,14 +227,6 @@ class PolarsParquetReader(CatalogFileReader):
         )
         self._frames = FramesModel(lf=lf)
         self._dtype_map = {}
-
-    @property
-    def filetype(self) -> str:
-        return 'parquet'
-
-    @property
-    def driver(self) -> str:
-        return 'polars'
 
 
 class PandasCsvReader(CatalogFileReader):
@@ -281,14 +261,6 @@ class PandasCsvReader(CatalogFileReader):
         df[list(self._dtype_map.keys())] = df[list(self._dtype_map.keys())].map(tuple)
         self._frames = FramesModel(df=df)
 
-    @property
-    def filetype(self) -> str:
-        return 'csv'
-
-    @property
-    def driver(self) -> str:
-        return 'pandas'
-
 
 class PandasParquetReader(CatalogFileReader):
     """A driver to read catalog files from csv using pandas"""
@@ -303,14 +275,6 @@ class PandasParquetReader(CatalogFileReader):
 
     def read(self) -> None:
         raise NotImplementedError('PandasDriver does not currently support reading parquet files')
-
-    @property
-    def filetype(self) -> str:
-        return 'parquet'
-
-    @property
-    def driver(self) -> str:
-        return 'pandas'
 
 
 class CatalogFileWriter:
