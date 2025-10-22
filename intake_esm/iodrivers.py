@@ -278,7 +278,10 @@ class PandasParquetReader(CatalogFileReader):
 
 
 class CatalogFileWriter:
-    """Abstracts away some of the complexity related to writing dataframes"""
+    """Abstracts away some of the complexity related to writing dataframes.
+    Should only be used with catalog_type='dict' to write catalogs with the
+    data embedded in the json file.
+    """
 
     mapper: fsspec.FSMap = None
 
@@ -297,9 +300,6 @@ class CatalogFileWriter:
         json_dump_kwargs: dict | None = None,
         storage_options: dict[str, typing.Any] | None = None,
     ) -> None:
-        if catalog_type != 'dict':
-            raise ValueError(f"{cls.__name__} class should only be used with catalog_type='dict'")
-
         data, fs, json_file_name = cls._common(name, directory, storage_options, data)
 
         _tmp_df = df.copy(deep=True)
@@ -362,17 +362,11 @@ class PandasCsvWriter(CatalogFileWriter):
         *,
         write_kwargs: dict,
         directory: str | None = None,
-        catalog_type: str = 'dict',
+        catalog_type: str = 'file',
         file_format: str = 'csv',
         json_dump_kwargs: dict | None = None,
         storage_options: dict[str, typing.Any] | None = None,
     ) -> None:
-        # Check if the directory is None, and if it is, set it to the current directory
-        if catalog_type != 'file':
-            raise ValueError(f"{cls.__name__} class should only be used with catalog_type='file'")
-        if file_format != 'csv':
-            raise ValueError(f"{cls.__name__} class should only be used with file_format='csv'")
-
         data, fs, json_file_name = cls._common(name, directory, storage_options, data)
         csv_file_name = fs.unstrip_protocol(f'{cls.mapper.root}/{name}.csv')
 
@@ -411,16 +405,12 @@ class PandasParquetWriter(CatalogFileWriter):
         name: str,
         *,
         directory: str | None = None,
-        catalog_type: str = 'dict',
-        file_format: str = 'csv',
+        catalog_type: str = 'file',
+        file_format: str = 'parquet',
         write_kwargs: dict,
         json_dump_kwargs: dict | None = None,
         storage_options: dict[str, typing.Any] | None = None,
     ) -> None:
-        if catalog_type != 'file':
-            raise ValueError(f"{cls.__name__} class should only be used with catalog_type='file'")
-        if file_format != 'parquet':
-            raise ValueError(f"{cls.__name__} class should only be used with file_format='parquet'")
         data, fs, json_file_name = cls._common(name, directory, storage_options, data)
         pq_file_name = fs.unstrip_protocol(f'{cls.mapper.root}/{name}.parquet')
 
