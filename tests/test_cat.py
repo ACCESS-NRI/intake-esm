@@ -78,6 +78,10 @@ def test_esmcatmodel_load(file):
     assert isinstance(cat.columns_with_iterables, set)
     assert isinstance(cat.has_multiple_variable_assets, bool)
 
+    # Make sure both references to frames are the same object, if we have an iodriver object instantiated
+    if cat._driver is not None:
+        assert cat._frames is cat._driver._frames
+
 
 @pytest.mark.parametrize(
     'esmcat_data',
