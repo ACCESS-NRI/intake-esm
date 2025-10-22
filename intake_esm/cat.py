@@ -27,7 +27,6 @@ from .iodrivers import (
     PolarsCsvReader,
     PolarsParquetReader,
 )
-from .utils import Reader
 
 
 def _allnan_or_nonan(df, column: str) -> bool:
@@ -309,7 +308,7 @@ class ESMCatalogModel(pydantic.BaseModel):
         _mapper: fsspec.FSMap,
         storage_options: dict[str, typing.Any],
         read_kwargs: dict[str, typing.Any],
-        df_reader: Reader,
+        df_reader: typing.Literal['polars', 'pandas', 'infer'],
     ) -> FramesModel:
         """
         Read the catalog file from disk. If a reader is specified, that will be
