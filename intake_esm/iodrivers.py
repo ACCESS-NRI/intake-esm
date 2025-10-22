@@ -89,8 +89,6 @@ class FramesModel(pydantic.BaseModel):
         `self.lazy` > `self.polars` > `self.pandas` to minimise overhead."""
         if (trunc_df := self.lazy.head(1).collect()).is_empty():
             return set()
-        if self.df is not None and self.df.empty:
-            return set()
 
         colnames, dtypes = trunc_df.columns, trunc_df.dtypes
         return {colname for colname, dtype in zip(colnames, dtypes) if dtype == pl.List}
