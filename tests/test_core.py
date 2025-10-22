@@ -2,7 +2,9 @@ import ast
 import json
 import os
 import sys
+import tempfile
 import warnings
+from pathlib import Path
 from unittest import mock
 
 import intake
@@ -308,6 +310,31 @@ def test_open_and_reserialize(tmp_path, file_format_1, file_format_2):
         reserialized.pop(field, None)
 
     assert serialized == reserialized
+
+
+def test_dict_serialization_list_dtype_preserved():
+    catalog = intake.open_esm_datastore(
+        access_columns_with_lists_cat, columns_with_iterables=['variable']
+    )
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        catalog.serialize(
+            name='test_catalog',
+            directory=tmpdir,
+            catalog_type='dict',
+            file_format='csv',
+            storage_options={},
+        )
+
+        catalog2 = intake.open_esm_datastore(
+            Path(tmpdir) / 'test_catalog.json',
+            columns_with_iterables=['variable'],
+        )
+
+    pd.testing.assert_frame_equal(
+        catalog.df,
+        catalog2.df,
+    )
 
 
 @pytest.mark.parametrize(
