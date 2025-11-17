@@ -84,6 +84,21 @@ def test_FramesModel_no_accidental_pd(pd_df, pl_df, lf, attr):
         assert f.df is not None
 
 
+def test_FramesModel_no_accidental_pl():
+    """
+    Make sure that if we instantiate with a pandas dataframe, we
+    don't accidentally trigger the creation of a polars dataframe.
+    """
+    pd_df = sample_df
+    pl_df = None
+    lf = None
+    f = FramesModel(df=pd_df, pl_df=pl_df, lf=lf)
+
+    assert f.pl_df is None
+    assert f.polars is not None
+    assert f.pl_df is not None
+
+
 def test_FramesModel_pandas_from_pldf():
     pd_df = None
     pl_df = sample_pl_df

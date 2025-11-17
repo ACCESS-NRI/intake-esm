@@ -959,3 +959,8 @@ def test_df_reader_parquet(catalog, df_reader, _driver):
 def test_df_reader_csv(catalog, df_reader, _driver):
     cat = intake.open_esm_datastore(catalog, df_reader=df_reader)
     assert isinstance(cat.esmcat._driver, _driver)
+    if df_reader == 'pandas':
+        cat.df
+        assert cat.esmcat._driver.pl_df is None
+        cat.esmcat._driver.frames.polars
+        assert cat.esmcat._driver.df is not None
