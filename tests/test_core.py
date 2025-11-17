@@ -2,7 +2,9 @@ import ast
 import json
 import os
 import sys
+import tempfile
 import warnings
+from pathlib import Path
 from unittest import mock
 
 import intake
@@ -12,6 +14,7 @@ import polars as pl
 import pydantic
 import pytest
 import xarray as xr
+from pandas.testing import assert_frame_equal as assert_frame_equal_pd
 from polars.testing import assert_frame_equal as assert_frame_equal_pl
 
 if packaging.version.Version(xr.__version__) < packaging.version.Version('2024.10'):
@@ -20,8 +23,10 @@ else:
     from xarray import DataTree
 
 import intake_esm
+from intake_esm.iodrivers import PandasCsvReader, PolarsCsvReader, PolarsParquetReader
 
 from .utils import (
+    access_columns_with_lists_bz2_cat,
     access_columns_with_lists_cat,
     access_columns_with_tuples_cat,
     catalog_dict_records,
@@ -307,6 +312,31 @@ def test_open_and_reserialize(tmp_path, file_format_1, file_format_2):
     assert serialized == reserialized
 
 
+def test_dict_serialization_list_dtype_preserved():
+    catalog = intake.open_esm_datastore(
+        access_columns_with_lists_cat, columns_with_iterables=['variable']
+    )
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        catalog.serialize(
+            name='test_catalog',
+            directory=tmpdir,
+            catalog_type='dict',
+            file_format='csv',
+            storage_options={},
+        )
+
+        catalog2 = intake.open_esm_datastore(
+            Path(tmpdir) / 'test_catalog.json',
+            columns_with_iterables=['variable'],
+        )
+
+    pd.testing.assert_frame_equal(
+        catalog.df,
+        catalog2.df,
+    )
+
+
 @pytest.mark.parametrize(
     'query,regex',
     [
@@ -471,13 +501,27 @@ def test_catalog_serialize(catalog_type, to_csv_kwargs, json_dump_kwargs, direct
         ]
     )
 
+    assert_frame_equal_pd(
+        cat_subset.df.reset_index(drop=True),
+        cat.df.reset_index(drop=True),
+    )
+
+    # Cast all Nans to None for comparison here - unimportant in practice
     df = cat.esmcat.pl_df.with_columns(
         [
-            pl.col(colname).cast(pl.Null)
+            pl.col(colname).fill_nan(None)
             for colname in cat.esmcat._frames.pl_df.columns
-            if cat.esmcat._frames.pl_df.get_column(colname).is_null().all()
+            if cat.esmcat.pl_df.get_column(colname).dtype == pl.Float64
         ]
     )
+    df = df.with_columns(
+        [
+            pl.col(colname).cast(pl.Null)
+            for colname in df.columns
+            if df.get_column(colname).is_null().all()
+        ]
+    )
+
     assert_frame_equal_pl(
         subset_df,
         df,
@@ -853,3 +897,70 @@ def test__get_threaded(mock_get_env, threaded, ITK_ESM_THREADING, expected):
             intake_esm.core._get_threaded(threaded)
     else:
         assert intake_esm.core._get_threaded(threaded) == expected
+
+
+@pytest.mark.parametrize(
+    'catalog, _driver',
+    [
+        (
+            cdf_cat_sample_cmip5_pq,
+            PolarsParquetReader,
+        ),
+    ],
+)
+@pytest.mark.parametrize('df_reader', ['pandas', 'polars', 'infer'])
+def test_df_reader_parquet(catalog, df_reader, _driver):
+    if df_reader == 'pandas':
+        with pytest.warns(UserWarning, match='Pandas parquet reader is not implemented yet.'):
+            cat = intake.open_esm_datastore(catalog, df_reader=df_reader)
+    else:
+        with warnings.catch_warnings():
+            warnings.simplefilter('error')  # Turn warnings into errors
+            cat = intake.open_esm_datastore(catalog, df_reader=df_reader)
+
+        assert isinstance(cat.esmcat._driver, _driver)
+
+
+@pytest.mark.parametrize(
+    'catalog, df_reader, _driver',
+    [
+        (
+            cdf_cat_sample_cmip5,
+            'polars',
+            PolarsCsvReader,
+        ),
+        (
+            cdf_cat_sample_cmip5,
+            'pandas',
+            PandasCsvReader,
+        ),
+        (
+            cdf_cat_sample_cmip5,
+            'infer',
+            PandasCsvReader,
+        ),
+        (
+            access_columns_with_lists_bz2_cat,
+            'polars',
+            PandasCsvReader,
+        ),
+        (
+            access_columns_with_lists_bz2_cat,
+            'pandas',
+            PandasCsvReader,
+        ),
+        (
+            access_columns_with_lists_bz2_cat,
+            'infer',
+            PandasCsvReader,
+        ),
+    ],
+)
+def test_df_reader_csv(catalog, df_reader, _driver):
+    cat = intake.open_esm_datastore(catalog, df_reader=df_reader)
+    assert isinstance(cat.esmcat._driver, _driver)
+    if df_reader == 'pandas':
+        cat.df
+        assert cat.esmcat._driver.frames.pl_df is None
+        cat.esmcat._driver.frames.polars
+        assert cat.esmcat._driver.frames.pl_df is not None
