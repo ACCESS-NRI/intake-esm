@@ -961,6 +961,6 @@ def test_df_reader_csv(catalog, df_reader, _driver):
     assert isinstance(cat.esmcat._driver, _driver)
     if df_reader == 'pandas':
         cat.df
-        assert cat.esmcat._driver.pl_df is None
+        assert cat.esmcat._driver.frames.pl_df is None
         cat.esmcat._driver.frames.polars
-        assert cat.esmcat._driver.df is not None
+        assert cat.esmcat._driver.frames.pl_df is not None
