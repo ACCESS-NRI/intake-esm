@@ -202,7 +202,9 @@ class PolarsCsvReader(CatalogFileReader):
                 .str.replace('.$', ']')  # set/tuple => list
                 .str.replace(',]$', ']')  # Remove trailing commas
                 .str.replace_all("'", '"')
-                .str.json_decode()  # This is to do with the way polars reads json - single versus double quotes
+                .str.json_decode(
+                    dtype=pl.List(pl.Utf8)
+                )  # This is to do with the way polars reads json - single versus double quotes
                 for colname in converters.keys()
             ]
         )
