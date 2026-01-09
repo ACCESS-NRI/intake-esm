@@ -8,6 +8,7 @@ import typing
 from abc import ABC, abstractmethod
 
 import fsspec
+import packaging.version
 import pandas as pd
 import polars as pl
 import pydantic
@@ -155,13 +156,21 @@ class PolarsCsvReader(CatalogFileReader):
 
     def read(self) -> None:
         """Read a catalog file stored as a csv using polars"""
-        converters = self.read_kwargs.pop(
-            'converters', {}
-        )  # Hack. N.B polars doesn't have a converters arg so this is safe to do.
-        # See https://github.com/pola-rs/polars/issues/13040 - can't use read_csv.
-        with fsspec.open(self.catalog_file, **self.storage_options) as fobj:
+        converters = self.read_kwargs.pop('converters', {})  # Hack
+
+        # For polars <1.33, we need to use fsspec here. For >=1.34, we can pass the raw
+        # url. See https://github.com/pola-rs/polars/pull/24450 & https://github.com/intake/intake-esm/issues/744
+        if packaging.version.Version(pl.__version__) < packaging.version.Version('1.34'):
+            with fsspec.open(self.catalog_file, **self.storage_options) as fobj:
+                lf = pl.scan_csv(
+                    fobj,  # type: ignore[arg-type]
+                    storage_options=self.storage_options,
+                    infer_schema=False,
+                    **self.read_kwargs,
+                )
+        else:
             lf = pl.scan_csv(
-                fobj,  # type: ignore[arg-type]
+                self.catalog_file,
                 storage_options=self.storage_options,
                 infer_schema=False,
                 **self.read_kwargs,
@@ -192,14 +201,12 @@ class PolarsCsvReader(CatalogFileReader):
                 .str.replace('^.', '[')  # Replace first/last chars with [ or ].
                 .str.replace('.$', ']')  # set/tuple => list
                 .str.replace(',]$', ']')  # Remove trailing commas
-                .str.replace_all(
-                    "'", '"'
-                )  # This is to do with the JSON spec - single versus double quotes
-                .str.json_decode(dtype=pl.List(pl.Utf8))
+                .str.replace_all("'", '"')
+                .str.json_decode()  # This is to do with the way polars reads json - single versus double quotes
                 for colname in converters.keys()
             ]
         )
-        self._frames = FramesModel(lf=lf)
+        return FramesModel(lf=lf)
 
 
 class PolarsParquetReader(CatalogFileReader):
