@@ -208,7 +208,7 @@ class PolarsCsvReader(CatalogFileReader):
                 for colname in converters.keys()
             ]
         )
-        return FramesModel(lf=lf)
+        self._frames = FramesModel(lf=lf)
 
 
 class PolarsParquetReader(CatalogFileReader):
