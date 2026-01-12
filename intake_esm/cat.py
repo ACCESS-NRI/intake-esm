@@ -10,6 +10,7 @@ import warnings
 from pathlib import Path
 
 import fsspec
+import packaging.version
 import pandas as pd
 import polars as pl
 import pydantic
