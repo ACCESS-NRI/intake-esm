@@ -161,9 +161,9 @@ class PolarsCsvReader(CatalogFileReader):
         # For polars <1.33, we need to use fsspec here. For >=1.34, we can pass the raw
         # url. See https://github.com/pola-rs/polars/pull/24450 & https://github.com/intake/intake-esm/issues/744
         if packaging.version.Version(pl.__version__) < packaging.version.Version('1.34'):
-            with fsspec.open(self.catalog_file, **self.storage_options) as fobj:
+            with fsspec.open(self.catalog_file, **self.storage_options) as fobj:  # pragma: no cover
                 lf = pl.scan_csv(  # pragma: no cover
-                    fobj,  # type: ignore[arg-type] pragma: no cover
+                    fobj,  # type: ignore[arg-type]
                     storage_options=self.storage_options,
                     infer_schema=False,
                     **self.read_kwargs,
