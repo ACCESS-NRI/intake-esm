@@ -6,7 +6,7 @@ dependencies:
   - cftime
   - codecov
   - dask >=2024.12
-  - fastprogress >=1.0.0
+  - fastprogress >=1.0.0, < 1.1.0
   - flaky >=3.8.0
   - fsspec >=2024.12
   - gcsfs >=2024.12
@@ -16,7 +16,7 @@ dependencies:
   - itables
   - matplotlib
   - netcdf4 >=1.5.5,!=1.6.1
-  - pandas >=2.1.0
+  - pandas >=2.1.0, <3.0.0
   - pip
   - polars>=1.33.0
   - pooch
