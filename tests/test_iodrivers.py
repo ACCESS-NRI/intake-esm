@@ -99,8 +99,11 @@ def test_FramesModel_polars_from_lf():
     ],
 )
 def test_FramesModel_columns_with_iterables(lf, pd_df):
-    pd_df = None
-    lf = sample_lf.head(0)
+    if lf is not None:
+        lf = sample_lf.head(0)
+    if pd_df is not None:
+        pd_df = sample_df.head(0)
+
     f = FramesModel(df=pd_df, lf=lf)
     assert f.columns_with_iterables == set()
 
