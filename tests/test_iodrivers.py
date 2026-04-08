@@ -21,6 +21,7 @@ from intake_esm.iodrivers import (
 )
 
 from .utils import (
+    access_columns_with_lists_cat,
     here,
     sample_df,
     sample_esmcat_data,
@@ -84,18 +85,23 @@ def test_FramesModel_no_accidental_pd(pd_df, lf, attr):
 
 def test_FramesModel_polars_from_lf():
     pd_df = None
-    pl_df = None
     lf = sample_lf
-    f = FramesModel(df=pd_df, pl_df=pl_df, lf=lf)
+    f = FramesModel(df=pd_df, lf=lf)
 
     assert isinstance(f.polars, pl.DataFrame)
 
 
-def test_FramesModel_columns_with_iterables():
+@pytest.mark.parametrize(
+    'lf, pd_df',
+    [
+        (sample_lf.head(0), None),
+        (None, sample_df.head(0)),
+    ],
+)
+def test_FramesModel_columns_with_iterables(lf, pd_df):
     pd_df = None
-    pl_df = None
     lf = sample_lf.head(0)
-    f = FramesModel(df=pd_df, pl_df=pl_df, lf=lf)
+    f = FramesModel(df=pd_df, lf=lf)
     assert f.columns_with_iterables == set()
 
 
@@ -111,6 +117,21 @@ def test_FramesModel_set_manual_df():
     expected_pl_df = pl.DataFrame({'numeric_col': [1, 2, 3], 'str_col': ['a', 'b', 'c']})
 
     pl_testing.assert_frame_equal(cat.pl_df, expected_pl_df)
+
+
+def test_FramesModel_applies_tuple():
+    """
+    Test that if we have a column with lists, we convert it to tuples in the pandas dataframe.
+    """
+    cat = ESMCatalogModel.load(
+        access_columns_with_lists_cat,
+        df_reader='polars',
+        read_kwargs={'converters': {'variable': ast.literal_eval}},
+    )
+
+    cat._frames.pandas
+
+    assert True
 
 
 def test_frames_model_ok_with_pandas_only():

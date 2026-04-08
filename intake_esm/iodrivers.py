@@ -42,7 +42,7 @@ class FramesModel(pydantic.BaseModel):
             return self.df
 
         pl_df = self.lf.collect()  # type: ignore[union-attr]
-        self.df = pl_df.to_pandas(use_pyarrow_extension_array=True)
+        self.df = pl_df.to_pandas(use_pyarrow_extension_array=False)
         for colname in self.columns_with_iterables:
             self.df[colname] = self.df[colname].apply(tuple)
         return self.df
