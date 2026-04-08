@@ -487,7 +487,9 @@ class ESMCatalogModel(pydantic.BaseModel):
 
         """
         if self._frames is None:
-            raise ValueError('FramesModel not instantiated. This should never happen.')
+            raise ValueError(
+                'FramesModel not instantiated. This should never happen.'
+            )  # pragma: no cover
 
         if self._frames.df is None:
             cols = list(self.lf.collect_schema().keys())
