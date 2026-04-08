@@ -7,6 +7,8 @@ import numpy as np
 import pandas as pd
 import polars as pl
 
+pl.Config.set_engine_affinity('streaming')
+
 
 def unpack_iterable_column(df: pd.DataFrame, column: str) -> pd.DataFrame:
     """Return a DataFrame where elements of a given iterable column have been unpacked into multiple lines."""
