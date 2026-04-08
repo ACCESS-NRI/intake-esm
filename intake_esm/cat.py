@@ -486,14 +486,17 @@ class ESMCatalogModel(pydantic.BaseModel):
             A new catalog with the entries satisfying the query criteria.
 
         """
-        if (_df := self._frames.df) is None:
+        if self._frames is None:
+            raise ValueError('FramesModel not instantiated. This should never happen.')
+
+        if self._frames.df is None:
             cols = list(self.lf.collect_schema().keys())
             col_subset = {
                 col for col, dtype in self.lf.collect_schema().items() if dtype == pl.Unknown
             }
             columns_with_iterables = {
                 col
-                for col, dtype in self._frames.lf.head(1)
+                for col, dtype in self._frames.lf.head(1)  # type: ignore[union-attr]
                 .select(col_subset)
                 .collect()
                 .schema.items()
@@ -546,7 +549,7 @@ class QueryModel(pydantic.BaseModel):
     model_config = ConfigDict(validate_assignment=False)
 
     @pydantic.model_validator(mode='after')
-    def validate_query(self) -> Self:
+    def validate_query(self) -> typing.Self:
         query = self.query
         columns = self.columns
         require_all_on = self.require_all_on
@@ -558,7 +561,7 @@ class QueryModel(pydantic.BaseModel):
         if isinstance(require_all_on, str):
             self.require_all_on = [require_all_on]
         if require_all_on is not None:
-            for key in self.require_all_on:
+            for key in self.require_all_on:  # type: ignore[union-attr]
                 if key not in columns:
                     raise ValueError(f'Column {key} not in columns {columns}')
         _query = query.copy()
