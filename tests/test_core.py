@@ -493,11 +493,11 @@ def test_catalog_serialize(catalog_type, to_csv_kwargs, json_dump_kwargs, direct
     if directory is None:
         directory = os.getcwd()
     cat = intake.open_esm_datastore(f'{directory}/{name}.json')
-    subset_df = cat_subset.esmcat.pl_df.with_columns(
+    subset_df = cat_subset.esmcat.lf.collect().with_columns(
         [
             pl.col(colname).cast(pl.Null)
-            for colname in cat_subset.esmcat._frames.pl_df.columns
-            if cat_subset.esmcat._frames.pl_df.get_column(colname).is_null().all()
+            for colname in cat_subset.esmcat._frames.lf.collect().columns
+            if cat_subset.esmcat._frames.lf.collect().get_column(colname).is_null().all()
         ]
     )
 
@@ -507,11 +507,11 @@ def test_catalog_serialize(catalog_type, to_csv_kwargs, json_dump_kwargs, direct
     )
 
     # Cast all Nans to None for comparison here - unimportant in practice
-    df = cat.esmcat.pl_df.with_columns(
+    df = cat.esmcat.lf.collect().with_columns(
         [
             pl.col(colname).fill_nan(None)
-            for colname in cat.esmcat._frames.pl_df.columns
-            if cat.esmcat.pl_df.get_column(colname).dtype == pl.Float64
+            for colname in cat.esmcat._frames.lf.collect().columns
+            if cat.esmcat.lf.collect().get_column(colname).dtype == pl.Float64
         ]
     )
     df = df.with_columns(
@@ -961,6 +961,6 @@ def test_df_reader_csv(catalog, df_reader, _driver):
     assert isinstance(cat.esmcat._driver, _driver)
     if df_reader == 'pandas':
         cat.df
-        assert cat.esmcat._driver.frames.pl_df is None
+        assert cat.esmcat._driver.frames.lf is None
         cat.esmcat._driver.frames.polars
-        assert cat.esmcat._driver.frames.pl_df is not None
+        assert cat.esmcat._driver.frames.lf is not None
