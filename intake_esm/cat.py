@@ -486,6 +486,7 @@ class ESMCatalogModel(pydantic.BaseModel):
             A new catalog with the entries satisfying the query criteria.
 
         """
+
         if self._frames is None:
             raise ValueError(
                 'FramesModel not instantiated. This should never happen.'
@@ -493,13 +494,9 @@ class ESMCatalogModel(pydantic.BaseModel):
 
         if self._frames.df is None:
             cols = list(self.lf.collect_schema().keys())
-            col_subset = {
-                col for col, dtype in self.lf.collect_schema().items() if dtype == pl.Unknown
-            }
             columns_with_iterables = {
                 col
                 for col, dtype in self._frames.lf.head(1)  # type: ignore[union-attr]
-                .select(col_subset)
                 .collect()
                 .schema.items()
                 if dtype == pl.List
