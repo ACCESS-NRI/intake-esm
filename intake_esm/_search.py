@@ -161,9 +161,7 @@ def pl_search(
             )
         else:
             lf = lf.filter(
-                pl.col(colname)
-                .list.eval(pl.element().is_in(subquery, nulls_equal=True).any())
-                .explode()
+                pl.col(colname).list.eval(pl.element().is_in(subquery, nulls_equal=True)).list.any()
             )
 
     df = lf.collect().to_pandas()
