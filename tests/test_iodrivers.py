@@ -132,9 +132,9 @@ def test_FramesModel_applies_tuple():
         read_kwargs={'converters': {'variable': ast.literal_eval}},
     )
 
-    cat._frames.pandas
-
-    assert True
+    pandas_df = cat._frames.pandas
+    assert 'variable' in pandas_df.columns
+    assert pandas_df['variable'].map(lambda value: isinstance(value, tuple)).all()
 
 
 def test_frames_model_ok_with_pandas_only():

@@ -296,7 +296,7 @@ class ESMCatalogModel(pydantic.BaseModel):
             else:
                 cat._frames = FramesModel(
                     lf=pl.LazyFrame(cat.catalog_dict),
-                    df=pl.DataFrame(cat.catalog_dict).to_pandas(),
+                    # df=pl.DataFrame(cat.catalog_dict).to_pandas(),
                 )
 
             return cat
