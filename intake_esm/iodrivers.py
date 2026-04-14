@@ -76,13 +76,16 @@ class FramesModel(pydantic.BaseModel):
     def columns_with_iterables(self) -> set[str]:
         """Return a set of columns that have iterables, preferentially using
         `self.lazy` > `self.polars` > `self.pandas` to minimise overhead."""
+
+        trunc_df = None
         if self.lf is not None and (trunc_df := self.lazy.head(1).collect()).is_empty():
             return set()
 
         if self.df is not None and self.df.empty:
             return set()
 
-        trunc_df = self.lazy.head(1).collect()
+        if trunc_df is None:
+            trunc_df = self.lazy.head(1).collect()
 
         colnames, dtypes = trunc_df.columns, trunc_df.dtypes
         return {colname for colname, dtype in zip(colnames, dtypes) if dtype == pl.List}

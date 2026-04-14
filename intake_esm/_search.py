@@ -81,25 +81,20 @@ def pl_search(
     iterable_dtypes: dict[str, type] | None = None,
 ) -> pd.DataFrame:
     """
-    Search for entries in the catalog.
-
-    Parameters
-    ----------
-    df: :py:class:`~pandas.DataFrame`
-        A dataframe to search
+    lf: :py:class:`~polars.LazyFrame`
+        A lazy dataframe to search.
     query: dict
-        A dictionary of query parameters to execute against the dataframe
-    columns_with_iterables: list
-        Columns in the dataframe that have iterables
+        A dictionary of query parameters to execute against the lazy dataframe.
+    columns_with_iterables: set
+        Names of columns in the lazy dataframe whose values contain iterables.
     iterable_dtypes: dict, optional
         A dictionary mapping column names to their iterable dtypes. If not provided,
-        defaults to all tuple. Typically unused, unless a dataframe with eg. set
-        iterables has been passed explicitly.
-
+        tuple is assumed for iterable columns. Typically unused, unless a lazy
+        dataframe with, for example, set iterables has been passed explicitly.
     Returns
     -------
     dataframe: :py:class:`~pandas.DataFrame`
-        A new dataframe with the entries satisfying the query criteria.
+        A pandas dataframe containing the entries satisfying the query criteria.
 
     """
 
