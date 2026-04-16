@@ -4,11 +4,11 @@
 {% set deps = pyproj.get('project', {}).get('dependencies',[]) %}
 
 package:
-  name: intake-esm-access
+  name: access-intake-esm
   version: "{{ version }}"
 
 source:
-  url: "https://files.pythonhosted.org/packages/source/i/intake_esm_access/intake_esm_access-{{ version }}.tar.gz"
+  url: "https://files.pythonhosted.org/packages/source/i/intake_esm_access/access_intake_esm-{{ version }}.tar.gz"
 
 build:
   noarch: python
