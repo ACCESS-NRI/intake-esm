@@ -19,7 +19,7 @@
     keywords = ["catalog", "intake", "xarray"]
     license = { text = "Apache Software License 2.0" }
     maintainers = [{ name = "ACCESS-NRI", email = "charles.turner@anu.edu.au" }]
-    name = "intake-esm-access"
+    name = "access-intake-esm"
     readme = "README.md"
     requires-python = ">=3.10"
 
