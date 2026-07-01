@@ -316,7 +316,16 @@ class ESMDataSource(DataSource):
                             ' Request valid dimension coordinate to silence this warning.',
                             category=ConcatenationWarning,
                         )
-                        self._ds = datasets[0]
+                        # Minor wrinkle - if we have datasets with different variable names, then we *do* need to grab
+                        # more than just the first dataset.
+                        _n_unique_fnames = (
+                            self.df[self.variable_column_name].nunique()
+                            if self.variable_column_name
+                            else 1
+                        )
+                        # ^ TLDR; assume that if we have multiple datasets with different variable names, then we need those.
+                        # If we have multiple datasets with the same variable name, they're probably repeated grid files, etc.
+                        self._ds = datasets[:_n_unique_fnames]
                     else:
                         raise exc
 
