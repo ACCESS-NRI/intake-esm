@@ -4,6 +4,7 @@ import tempfile
 from unittest import mock
 
 import dask
+import intake
 import pytest
 import xarray
 from dask.delayed import DelayedLeaf
@@ -201,3 +202,17 @@ def test_get_open_func(threaded, expected):
         assert open_func == _eager_open_ds
     else:
         assert isinstance(open_func, DelayedLeaf)
+
+
+def test_expand_dims_coord_variable_regression():
+    """A catalog whose `variable` column names a dimension coordinate (`time`)
+    must still load. Previously `_expand_dims` expanded `time` into a
+    `(member, time)` coordinate, destroying its index and breaking
+    `combine_by_coords` with an `ESMDataSourceError`.
+    """
+    cat_json = os.path.join(here, 'sample_data/expand-dims-coord/catalog.json')
+    cat = intake.open_esm_datastore(cat_json)
+    dsets = cat.to_dataset_dict(progressbar=False)
+    ds = dsets['by647.mon']
+    assert 'time' in ds.dims  # time index preserved, not expanded away
+    assert ds.sizes['time'] == 3
